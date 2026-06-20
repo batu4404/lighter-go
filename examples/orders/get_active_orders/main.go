@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -25,7 +26,7 @@ func main() {
 
 	// Get all active orders across all markets
 	fmt.Println("Fetching active orders for all markets...")
-	orders, err := signerClient.GetOpenOrders(nil)
+	orders, err := signerClient.GetOpenOrders(context.Background(), nil)
 	if err != nil {
 		log.Fatalf("Failed to get open orders: %v", err)
 	}
@@ -54,7 +55,7 @@ func main() {
 	// Get orders for a specific market (ETH-USD, market 0)
 	fmt.Println("Fetching active orders for ETH-USD market only...")
 	marketIndex := int16(0)
-	ethOrders, err := signerClient.GetOpenOrders(&marketIndex)
+	ethOrders, err := signerClient.GetOpenOrders(context.Background(), &marketIndex)
 	if err != nil {
 		log.Fatalf("Failed to get ETH-USD orders: %v", err)
 	}

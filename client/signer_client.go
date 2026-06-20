@@ -29,6 +29,7 @@
 package client
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -94,7 +95,7 @@ func (c *SignerClient) NonceManager() nonce.Manager {
 }
 
 // CreateMarketOrder creates a market order with minimal parameters
-func (c *SignerClient) CreateMarketOrder(marketIndex int16, size int64, isBuy bool, opts *types.TransactOpts) (*txtypes.L2CreateOrderTxInfo, error) {
+func (c *SignerClient) CreateMarketOrder(ctx context.Context, marketIndex int16, size int64, isBuy bool, opts *types.TransactOpts) (*txtypes.L2CreateOrderTxInfo, error) {
 	isAsk := uint8(0)
 	if !isBuy {
 		isAsk = 1
@@ -121,29 +122,32 @@ func (c *SignerClient) CreateMarketOrder(marketIndex int16, size int64, isBuy bo
 		OrderExpiry:      0,
 	}
 
-	return c.GetCreateOrderTransaction(req, opts)
+	return c.GetCreateOrderTransaction(ctx, req, opts)
 }
 
 // CreateMarketOrderWithSlippage creates a market order with slippage protection
-func (c *SignerClient) CreateMarketOrderWithSlippage(marketIndex int16, size int64, isBuy bool, slippageBps int, opts *types.TransactOpts) (*txtypes.L2CreateOrderTxInfo, error) {
-	// Fetch current market price
-	orderBooks, err := c.fullHTTP.Order().GetOrderBooks(&marketIndex, api.MarketFilterAll)
+func (c *SignerClient) CreateMarketOrderWithSlippage(ctx context.Context, marketIndex int16, size int64, isBuy bool, slippageBps int, opts *types.TransactOpts) (*txtypes.L2CreateOrderTxInfo, error) {
+	// Fetch current market price from order book details
+	orderBookDetails, err := c.fullHTTP.Order().GetOrderBookDetails(ctx, &marketIndex, api.MarketFilterAll)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get order book: %w", err)
 	}
 
-	if len(orderBooks.OrderBooks) == 0 {
-		return nil, fmt.Errorf("no order book data for market %d", marketIndex)
+	// Find the matching perps order book
+	var referencePrice string
+	for _, ob := range orderBookDetails.PerpsOrderBooks {
+		if ob.MarketIndex == marketIndex {
+			if isBuy && len(ob.Asks) > 0 {
+				referencePrice = ob.Asks[0].Price
+			} else if !isBuy && len(ob.Bids) > 0 {
+				referencePrice = ob.Bids[0].Price
+			}
+			break
+		}
 	}
 
-	ob := orderBooks.OrderBooks[0]
-	var referencePrice string
-	if isBuy && len(ob.Asks) > 0 {
-		referencePrice = ob.Asks[0].Price
-	} else if !isBuy && len(ob.Bids) > 0 {
-		referencePrice = ob.Bids[0].Price
-	} else {
-		return nil, fmt.Errorf("no liquidity in order book")
+	if referencePrice == "" {
+		return nil, fmt.Errorf("no liquidity in order book for market %d", marketIndex)
 	}
 
 	price, err := calculateSlippagePrice(referencePrice, slippageBps, isBuy)
@@ -169,11 +173,11 @@ func (c *SignerClient) CreateMarketOrderWithSlippage(marketIndex int16, size int
 		OrderExpiry:      0,
 	}
 
-	return c.GetCreateOrderTransaction(req, opts)
+	return c.GetCreateOrderTransaction(ctx, req, opts)
 }
 
 // CreateLimitOrder creates a limit order
-func (c *SignerClient) CreateLimitOrder(marketIndex int16, size int64, price uint32, isBuy bool, expiry int64, opts *types.TransactOpts) (*txtypes.L2CreateOrderTxInfo, error) {
+func (c *SignerClient) CreateLimitOrder(ctx context.Context, marketIndex int16, size int64, price uint32, isBuy bool, expiry int64, opts *types.TransactOpts) (*txtypes.L2CreateOrderTxInfo, error) {
 	isAsk := uint8(0)
 	if !isBuy {
 		isAsk = 1
@@ -192,11 +196,11 @@ func (c *SignerClient) CreateLimitOrder(marketIndex int16, size int64, price uin
 		OrderExpiry:      expiry,
 	}
 
-	return c.GetCreateOrderTransaction(req, opts)
+	return c.GetCreateOrderTransaction(ctx, req, opts)
 }
 
 // CreateTakeProfitOrder creates a take-profit market order
-func (c *SignerClient) CreateTakeProfitOrder(marketIndex int16, size int64, triggerPrice uint32, isBuy bool, expiry int64, opts *types.TransactOpts) (*txtypes.L2CreateOrderTxInfo, error) {
+func (c *SignerClient) CreateTakeProfitOrder(ctx context.Context, marketIndex int16, size int64, triggerPrice uint32, isBuy bool, expiry int64, opts *types.TransactOpts) (*txtypes.L2CreateOrderTxInfo, error) {
 	isAsk := uint8(0)
 	if !isBuy {
 		isAsk = 1
@@ -223,11 +227,11 @@ func (c *SignerClient) CreateTakeProfitOrder(marketIndex int16, size int64, trig
 		OrderExpiry:      expiry,
 	}
 
-	return c.GetCreateOrderTransaction(req, opts)
+	return c.GetCreateOrderTransaction(ctx, req, opts)
 }
 
 // CreateTakeProfitLimitOrder creates a take-profit limit order
-func (c *SignerClient) CreateTakeProfitLimitOrder(marketIndex int16, size int64, price uint32, triggerPrice uint32, isBuy bool, expiry int64, opts *types.TransactOpts) (*txtypes.L2CreateOrderTxInfo, error) {
+func (c *SignerClient) CreateTakeProfitLimitOrder(ctx context.Context, marketIndex int16, size int64, price uint32, triggerPrice uint32, isBuy bool, expiry int64, opts *types.TransactOpts) (*txtypes.L2CreateOrderTxInfo, error) {
 	isAsk := uint8(0)
 	if !isBuy {
 		isAsk = 1
@@ -246,11 +250,11 @@ func (c *SignerClient) CreateTakeProfitLimitOrder(marketIndex int16, size int64,
 		OrderExpiry:      expiry,
 	}
 
-	return c.GetCreateOrderTransaction(req, opts)
+	return c.GetCreateOrderTransaction(ctx, req, opts)
 }
 
 // CreateStopLossOrder creates a stop-loss market order
-func (c *SignerClient) CreateStopLossOrder(marketIndex int16, size int64, triggerPrice uint32, isBuy bool, expiry int64, opts *types.TransactOpts) (*txtypes.L2CreateOrderTxInfo, error) {
+func (c *SignerClient) CreateStopLossOrder(ctx context.Context, marketIndex int16, size int64, triggerPrice uint32, isBuy bool, expiry int64, opts *types.TransactOpts) (*txtypes.L2CreateOrderTxInfo, error) {
 	isAsk := uint8(0)
 	if !isBuy {
 		isAsk = 1
@@ -276,11 +280,11 @@ func (c *SignerClient) CreateStopLossOrder(marketIndex int16, size int64, trigge
 		OrderExpiry:      expiry,
 	}
 
-	return c.GetCreateOrderTransaction(req, opts)
+	return c.GetCreateOrderTransaction(ctx, req, opts)
 }
 
 // CreateStopLossLimitOrder creates a stop-loss limit order
-func (c *SignerClient) CreateStopLossLimitOrder(marketIndex int16, size int64, price uint32, triggerPrice uint32, isBuy bool, expiry int64, opts *types.TransactOpts) (*txtypes.L2CreateOrderTxInfo, error) {
+func (c *SignerClient) CreateStopLossLimitOrder(ctx context.Context, marketIndex int16, size int64, price uint32, triggerPrice uint32, isBuy bool, expiry int64, opts *types.TransactOpts) (*txtypes.L2CreateOrderTxInfo, error) {
 	isAsk := uint8(0)
 	if !isBuy {
 		isAsk = 1
@@ -299,11 +303,138 @@ func (c *SignerClient) CreateStopLossLimitOrder(marketIndex int16, size int64, p
 		OrderExpiry:      expiry,
 	}
 
-	return c.GetCreateOrderTransaction(req, opts)
+	return c.GetCreateOrderTransaction(ctx, req, opts)
+}
+
+// TriggerOrderParams contains parameters for TP/SL trigger orders
+type TriggerOrderParams struct {
+	TriggerPrice uint32 // Price that triggers the order (6 decimals)
+	Expiry       int64  // Order expiry in milliseconds
+}
+
+// CreateMarketOrderWithTPSL creates a market order with optional take-profit and/or stop-loss
+// as a grouped order. This ensures atomic execution with a single nonce.
+//
+// Parameters:
+//   - marketIndex: The market to trade on
+//   - size: Order size in base units (8 decimals)
+//   - isBuy: true for buy/long, false for sell/short
+//   - takeProfit: Take-profit parameters (nil to skip)
+//   - stopLoss: Stop-loss parameters (nil to skip)
+//   - opts: Transaction options (nonce, expiry, etc.)
+//
+// Grouping logic:
+//   - Both TP and SL: OTOCO (GroupingType 3) - parent triggers both, children are OCO
+//   - Only TP or SL: OTO (GroupingType 1) - parent triggers child
+//   - Neither: Returns error (use CreateMarketOrder instead)
+func (c *SignerClient) CreateMarketOrderWithTPSL(
+	ctx context.Context,
+	marketIndex int16,
+	size int64,
+	isBuy bool,
+	takeProfit *TriggerOrderParams,
+	stopLoss *TriggerOrderParams,
+	opts *types.TransactOpts,
+) (*txtypes.L2CreateGroupedOrdersTxInfo, error) {
+	if takeProfit == nil && stopLoss == nil {
+		return nil, fmt.Errorf("at least one of takeProfit or stopLoss must be provided; use CreateMarketOrder for orders without TP/SL")
+	}
+
+	// Determine grouping type
+	var groupingType uint8
+	if takeProfit != nil && stopLoss != nil {
+		groupingType = txtypes.GroupingType_OneTriggersAOneCancelsTheOther // OTOCO
+	} else {
+		groupingType = txtypes.GroupingType_OneTriggersTheOther // OTO
+	}
+
+	// Parent order direction
+	isAsk := uint8(0)
+	if !isBuy {
+		isAsk = 1
+	}
+
+	// Parent market order price (will fill at market)
+	var parentPrice uint32
+	if isBuy {
+		parentPrice = txtypes.MaxOrderPrice
+	} else {
+		parentPrice = txtypes.MinOrderPrice
+	}
+
+	// Child orders are opposite direction (to close the position)
+	childIsAsk := uint8(1)
+	if !isBuy {
+		childIsAsk = 0
+	}
+
+	// Child order price (will fill at market once triggered)
+	var childPrice uint32
+	if childIsAsk == 1 {
+		childPrice = txtypes.MinOrderPrice // Selling, use min price
+	} else {
+		childPrice = txtypes.MaxOrderPrice // Buying, use max price
+	}
+
+	// Build orders slice
+	orders := []*types.CreateOrderTxReq{
+		// Order 0: Parent market order
+		{
+			MarketIndex:      marketIndex,
+			ClientOrderIndex: 0,
+			BaseAmount:       size,
+			Price:            parentPrice,
+			IsAsk:            isAsk,
+			Type:             txtypes.MarketOrder,
+			TimeInForce:      txtypes.ImmediateOrCancel,
+			ReduceOnly:       0,
+			TriggerPrice:     0,
+			OrderExpiry:      0,
+		},
+	}
+
+	// Add TP order if provided
+	if takeProfit != nil {
+		orders = append(orders, &types.CreateOrderTxReq{
+			MarketIndex:      marketIndex,
+			ClientOrderIndex: 0,
+			BaseAmount:       0, // 0 = use position size
+			Price:            childPrice,
+			IsAsk:            childIsAsk,
+			Type:             txtypes.TakeProfitOrder,
+			TimeInForce:      txtypes.ImmediateOrCancel,
+			ReduceOnly:       1,
+			TriggerPrice:     takeProfit.TriggerPrice,
+			OrderExpiry:      takeProfit.Expiry,
+		})
+	}
+
+	// Add SL order if provided
+	if stopLoss != nil {
+		orders = append(orders, &types.CreateOrderTxReq{
+			MarketIndex:      marketIndex,
+			ClientOrderIndex: 0,
+			BaseAmount:       0, // 0 = use position size
+			Price:            childPrice,
+			IsAsk:            childIsAsk,
+			Type:             txtypes.StopLossOrder,
+			TimeInForce:      txtypes.ImmediateOrCancel,
+			ReduceOnly:       1,
+			TriggerPrice:     stopLoss.TriggerPrice,
+			OrderExpiry:      stopLoss.Expiry,
+		})
+	}
+
+	req := &types.CreateGroupedOrdersTxReq{
+		GroupingType: groupingType,
+		Orders:       orders,
+	}
+
+	return c.GetCreateGroupedOrdersTransaction(ctx, req, opts)
 }
 
 // SendAndSubmit signs a transaction and submits it to the API
-func (c *SignerClient) SendAndSubmit(txInfo txtypes.TxInfo) (*api.RespSendTx, error) {
+func (c *SignerClient) SendAndSubmit(ctx context.Context, txInfo txtypes.TxInfo) (*api.RespSendTx, error) {
 	txInfoJSON, err := txInfo.GetTxInfo()
 	if err != nil {
 		return nil, fmt.Errorf("failed to serialize tx info: %w", err)
@@ -313,6 +444,7 @@ func (c *SignerClient) SendAndSubmit(txInfo txtypes.TxInfo) (*api.RespSendTx, er
 	accountIndex := c.GetAccountIndex()
 	apiKeyIndex := c.GetApiKeyIndex()
 	resp, err := c.fullHTTP.Transaction().SendTxWithIndices(
+		ctx,
 		txInfo.GetTxType(),
 		txInfoJSON,
 		nil,
@@ -332,8 +464,8 @@ func (c *SignerClient) SendAndSubmit(txInfo txtypes.TxInfo) (*api.RespSendTx, er
 	return resp, nil
 }
 
-// SendTxBatch submits multiple transactions
-func (c *SignerClient) SendTxBatch(txInfos []txtypes.TxInfo) (*api.RespSendTxBatch, error) {
+// SendTxBatch submits multiple transactions with auth token
+func (c *SignerClient) SendTxBatch(ctx context.Context, txInfos []txtypes.TxInfo) (*api.RespSendTxBatch, error) {
 	txTypes := make([]uint8, len(txInfos))
 	txInfoJSONs := make([]string, len(txInfos))
 
@@ -346,13 +478,19 @@ func (c *SignerClient) SendTxBatch(txInfos []txtypes.TxInfo) (*api.RespSendTxBat
 		txInfoJSONs[i] = jsonStr
 	}
 
-	return c.fullHTTP.Transaction().SendTxBatch(txTypes, txInfoJSONs)
+	// Generate auth token for the request
+	authToken, err := c.getAuthToken()
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate auth token: %w", err)
+	}
+
+	return c.fullHTTP.Transaction().SendTxBatchWithAuth(ctx, txTypes, txInfoJSONs, authToken)
 }
 
 // Transfer creates, signs (L1 + L2), and submits a transfer transaction.
 // This is a convenience method that handles L1 signing internally.
 // ethPrivateKey is the Ethereum private key (hex-encoded) for L1 signature.
-func (c *SignerClient) Transfer(ethPrivateKey string, req *types.TransferTxReq, opts *types.TransactOpts) (*api.RespSendTx, error) {
+func (c *SignerClient) Transfer(ctx context.Context, ethPrivateKey string, req *types.TransferTxReq, opts *types.TransactOpts) (*api.RespSendTx, error) {
 	// Create L1 signer
 	l1Signer, err := signer.NewL1Signer(ethPrivateKey)
 	if err != nil {
@@ -360,7 +498,7 @@ func (c *SignerClient) Transfer(ethPrivateKey string, req *types.TransferTxReq, 
 	}
 
 	// Create the transfer transaction (L2 signed)
-	txInfo, err := c.GetTransferTransaction(req, opts)
+	txInfo, err := c.GetTransferTransaction(ctx, req, opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create transfer transaction: %w", err)
 	}
@@ -373,13 +511,113 @@ func (c *SignerClient) Transfer(ethPrivateKey string, req *types.TransferTxReq, 
 	txInfo.SetL1Sig(l1Sig)
 
 	// Submit
-	return c.SendAndSubmit(txInfo)
+	return c.SendAndSubmit(ctx, txInfo)
+}
+
+// TransferSameMasterAccount creates, L2-signs, and submits a transfer between
+// two accounts that share the same master account. Unlike Transfer, no L1
+// (Ethereum) signature is required: the shared master account already
+// authorizes the move, so there is no cross-owner approval to sign. Mirrors
+// lighter-python's sign_transfer_same_master_account, which submits the same
+// SignTransfer output without an eth key.
+func (c *SignerClient) TransferSameMasterAccount(ctx context.Context, req *types.TransferTxReq, opts *types.TransactOpts) (*api.RespSendTx, error) {
+	txInfo, err := c.GetTransferTransaction(ctx, req, opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create transfer transaction: %w", err)
+	}
+	return c.SendAndSubmit(ctx, txInfo)
+}
+
+// FastWithdraw performs a fast withdrawal from Lighter L2 to an L1 address.
+// This transfers USDC to a pool account which then sends funds to the destination L1 address.
+// ethPrivateKey is the Ethereum private key (hex-encoded) for L1 signature.
+// toL1Address is the destination Ethereum address on L1.
+// amount is the USDC amount in base units (6 decimals, e.g. 5_000_000 for 5 USDC).
+func (c *SignerClient) FastWithdraw(ctx context.Context, ethPrivateKey string, toL1Address string, amount int64) (*api.RespFastWithdraw, error) {
+	// Get auth token
+	authToken, err := c.getAuthToken()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get auth token: %w", err)
+	}
+
+	// Get fast withdraw pool info
+	poolInfo, err := c.fullHTTP.Bridge().GetFastWithdrawInfo(ctx, c.GetAccountIndex(), authToken)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get fast withdraw pool info: %w", err)
+	}
+
+	// Get transfer fee (requires auth)
+	feeInfo, err := c.fullHTTP.Transaction().GetTransferFeeInfo(ctx, c.GetAccountIndex(), &poolInfo.ToAccountIndex, authToken)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get transfer fee: %w", err)
+	}
+
+	// Build memo: 20-byte address + 12 zero bytes
+	addrHex := toL1Address
+	if len(addrHex) >= 2 && addrHex[:2] == "0x" {
+		addrHex = addrHex[2:]
+	}
+	if len(addrHex) != 40 {
+		return nil, fmt.Errorf("invalid L1 address length: expected 40 hex chars, got %d", len(addrHex))
+	}
+
+	var memo [32]byte
+	addrBytes := make([]byte, 20)
+	for i := 0; i < 20; i++ {
+		var b byte
+		_, err := fmt.Sscanf(addrHex[i*2:i*2+2], "%02x", &b)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse address byte: %w", err)
+		}
+		addrBytes[i] = b
+	}
+	copy(memo[:20], addrBytes)
+	// Last 12 bytes are already zero
+
+	// Create L1 signer
+	l1Signer, err := signer.NewL1Signer(ethPrivateKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create L1 signer: %w", err)
+	}
+
+	// Create transfer request
+	req := &types.TransferTxReq{
+		ToAccountIndex: poolInfo.ToAccountIndex,
+		AssetIndex:     3, // USDC
+		FromRouteType:  0, // Perps
+		ToRouteType:    0, // Perps
+		Amount:         amount,
+		USDCFee:        feeInfo.TransferFeeUsdc,
+		Memo:           memo,
+	}
+
+	// Create the transfer transaction (L2 signed)
+	txInfo, err := c.GetTransferTransaction(ctx, req, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create transfer transaction: %w", err)
+	}
+
+	// Sign with Ethereum key (L1 signature)
+	l1Sig, err := l1Signer.Sign(txInfo.GetL1SignatureBody(c.GetChainId()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign L1 message: %w", err)
+	}
+	txInfo.SetL1Sig(l1Sig)
+
+	// Get tx info JSON
+	txInfoJSON, err := txInfo.GetTxInfo()
+	if err != nil {
+		return nil, fmt.Errorf("failed to serialize tx info: %w", err)
+	}
+
+	// Submit to fast withdraw endpoint
+	return c.fullHTTP.Bridge().SubmitFastWithdraw(ctx, txInfoJSON, toL1Address, authToken)
 }
 
 // ChangePubKey creates, signs (L1 + L2), and submits a change pub key transaction.
 // This is a convenience method that handles L1 signing internally.
 // ethPrivateKey is the Ethereum private key (hex-encoded) for L1 signature.
-func (c *SignerClient) ChangePubKey(ethPrivateKey string, req *types.ChangePubKeyReq, opts *types.TransactOpts) (*api.RespSendTx, error) {
+func (c *SignerClient) ChangePubKey(ctx context.Context, ethPrivateKey string, req *types.ChangePubKeyReq, opts *types.TransactOpts) (*api.RespSendTx, error) {
 	// Create L1 signer
 	l1Signer, err := signer.NewL1Signer(ethPrivateKey)
 	if err != nil {
@@ -387,7 +625,7 @@ func (c *SignerClient) ChangePubKey(ethPrivateKey string, req *types.ChangePubKe
 	}
 
 	// Create the change pub key transaction (L2 signed)
-	txInfo, err := c.GetChangePubKeyTransaction(req, opts)
+	txInfo, err := c.GetChangePubKeyTransaction(ctx, req, opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create change pub key transaction: %w", err)
 	}
@@ -404,30 +642,82 @@ func (c *SignerClient) ChangePubKey(ethPrivateKey string, req *types.ChangePubKe
 	if err != nil {
 		return nil, fmt.Errorf("failed to serialize tx info: %w", err)
 	}
-	return c.fullHTTP.Transaction().SendTx(txInfo.GetTxType(), txInfoJSON, nil)
+	return c.fullHTTP.Transaction().SendTx(ctx, txInfo.GetTxType(), txInfoJSON, nil)
+}
+
+// ApproveIntegrator signs and submits an ApproveIntegrator transaction, authorizing
+// the given integrator account to charge taker/maker fees (up to the supplied maxes)
+// on this account's orders. Like ChangePubKey, it requires both the L2 (API key) and
+// L1 (Ethereum) signatures: GetApproveIntegratorTx produces the Schnorr L2 signature,
+// and the ethPrivateKey produces the EIP-191 L1 signature over the tx's L1 signature body.
+func (c *SignerClient) ApproveIntegrator(ctx context.Context, ethPrivateKey string, req *types.ApproveIntegratorTxReq, opts *types.TransactOpts) (*api.RespSendTx, error) {
+	// Create L1 signer
+	l1Signer, err := signer.NewL1Signer(ethPrivateKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create L1 signer: %w", err)
+	}
+
+	// Create the approve integrator transaction (L2 signed)
+	txInfo, err := c.GetApproveIntegratorTx(ctx, req, opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create approve integrator transaction: %w", err)
+	}
+
+	// Sign with Ethereum key (L1 signature)
+	l1Sig, err := l1Signer.Sign(txInfo.GetL1SignatureBody(c.GetChainId()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign L1 message: %w", err)
+	}
+	txInfo.L1Sig = l1Sig
+
+	// Submit
+	txInfoJSON, err := txInfo.GetTxInfo()
+	if err != nil {
+		return nil, fmt.Errorf("failed to serialize tx info: %w", err)
+	}
+	return c.fullHTTP.Transaction().SendTx(ctx, txInfo.GetTxType(), txInfoJSON, nil)
+}
+
+// ApproveIntegratorSameMasterAccount creates, L2-signs, and submits an
+// approve-integrator transaction for an integrator account that shares the
+// same master account. Unlike ApproveIntegrator, no L1 (Ethereum) signature is
+// required: the shared master account already authorizes the approval. Mirrors
+// lighter-python's sign_approve_integrator_same_master_account, which submits
+// the same SignApproveIntegrator output without an eth key.
+func (c *SignerClient) ApproveIntegratorSameMasterAccount(ctx context.Context, req *types.ApproveIntegratorTxReq, opts *types.TransactOpts) (*api.RespSendTx, error) {
+	txInfo, err := c.GetApproveIntegratorTx(ctx, req, opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create approve integrator transaction: %w", err)
+	}
+
+	txInfoJSON, err := txInfo.GetTxInfo()
+	if err != nil {
+		return nil, fmt.Errorf("failed to serialize tx info: %w", err)
+	}
+	return c.fullHTTP.Transaction().SendTx(ctx, txInfo.GetTxType(), txInfoJSON, nil)
 }
 
 // GetOpenOrders retrieves open orders for the account
-func (c *SignerClient) GetOpenOrders(marketID *int16) (*api.Orders, error) {
+func (c *SignerClient) GetOpenOrders(ctx context.Context, marketID *int16) (*api.Orders, error) {
 	authToken, err := c.getAuthToken()
 	if err != nil {
 		return nil, err
 	}
-	return c.fullHTTP.Order().GetActiveOrders(c.GetAccountIndex(), marketID, authToken)
+	return c.fullHTTP.Order().GetActiveOrders(ctx, c.GetAccountIndex(), marketID, authToken)
 }
 
 // CancelAllOrders cancels all open orders
-func (c *SignerClient) CancelAllOrders(opts *types.TransactOpts) (*txtypes.L2CancelAllOrdersTxInfo, error) {
+func (c *SignerClient) CancelAllOrders(ctx context.Context, opts *types.TransactOpts) (*txtypes.L2CancelAllOrdersTxInfo, error) {
 	req := &types.CancelAllOrdersTxReq{
 		TimeInForce: txtypes.ImmediateCancelAll,
 		Time:        0,
 	}
-	return c.GetCancelAllOrdersTransaction(req, opts)
+	return c.GetCancelAllOrdersTransaction(ctx, req, opts)
 }
 
 // GetPositions retrieves current positions
-func (c *SignerClient) GetPositions() (*api.DetailedAccounts, error) {
-	return c.fullHTTP.Account().GetAccount(api.QueryByIndex, fmt.Sprintf("%d", c.GetAccountIndex()))
+func (c *SignerClient) GetPositions(ctx context.Context) (*api.DetailedAccounts, error) {
+	return c.fullHTTP.Account().GetAccount(ctx, api.QueryByIndex, fmt.Sprintf("%d", c.GetAccountIndex()))
 }
 
 // Helper to get auth token

@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -33,7 +34,7 @@ func main() {
 		ShareAmount:     100000, // Number of shares to mint
 	}
 
-	txInfo, err := signerClient.GetMintSharesTransaction(req, nil)
+	txInfo, err := signerClient.GetMintSharesTransaction(context.Background(), req, nil)
 	if err != nil {
 		log.Fatalf("Failed to create mint shares transaction: %v", err)
 	}
@@ -47,7 +48,7 @@ func main() {
 	fmt.Println("gives you proportional ownership of pool assets.")
 
 	// Submit to API
-	resp, err := signerClient.SendAndSubmit(txInfo)
+	resp, err := signerClient.SendAndSubmit(context.Background(), txInfo)
 	if err != nil {
 		log.Fatalf("Failed to submit transaction: %v", err)
 	}

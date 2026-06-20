@@ -1,6 +1,7 @@
 package nonce
 
 import (
+	"context"
 	"errors"
 	"testing"
 )
@@ -11,7 +12,7 @@ func TestAPIManager_GetNonce(t *testing.T) {
 
 	manager := NewAPIManager(fetcher)
 
-	nonce, err := manager.GetNonce(1, 0)
+	nonce, err := manager.GetNonce(context.Background(), 1, 0)
 	if err != nil {
 		t.Fatalf("GetNonce failed: %v", err)
 	}
@@ -28,9 +29,9 @@ func TestAPIManager_GetNonce_AlwaysFetchesFromAPI(t *testing.T) {
 	manager := NewAPIManager(fetcher)
 
 	// Each call should fetch from API
-	nonce1, _ := manager.GetNonce(1, 0)
-	nonce2, _ := manager.GetNonce(1, 0)
-	nonce3, _ := manager.GetNonce(1, 0)
+	nonce1, _ := manager.GetNonce(context.Background(), 1, 0)
+	nonce2, _ := manager.GetNonce(context.Background(), 1, 0)
+	nonce3, _ := manager.GetNonce(context.Background(), 1, 0)
 
 	// Mock fetcher increments on each call
 	if nonce1 != 100 {
@@ -56,8 +57,8 @@ func TestAPIManager_GetNonce_MultipleAccounts(t *testing.T) {
 
 	manager := NewAPIManager(fetcher)
 
-	nonce1, _ := manager.GetNonce(1, 0)
-	nonce2, _ := manager.GetNonce(2, 0)
+	nonce1, _ := manager.GetNonce(context.Background(), 1, 0)
+	nonce2, _ := manager.GetNonce(context.Background(), 2, 0)
 
 	if nonce1 != 100 {
 		t.Errorf("expected nonce for account 1 to be 100, got %d", nonce1)
@@ -74,7 +75,7 @@ func TestAPIManager_GetNonce_Error(t *testing.T) {
 
 	manager := NewAPIManager(fetcher)
 
-	_, err := manager.GetNonce(1, 0)
+	_, err := manager.GetNonce(context.Background(), 1, 0)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -91,13 +92,13 @@ func TestAPIManager_AcknowledgeSuccess_NoOp(t *testing.T) {
 	manager := NewAPIManager(fetcher)
 
 	// Get a nonce
-	nonce1, _ := manager.GetNonce(1, 0)
+	nonce1, _ := manager.GetNonce(context.Background(), 1, 0)
 
 	// Acknowledge success (should be no-op)
 	manager.AcknowledgeSuccess(1, 0, nonce1)
 
 	// Next call should still fetch from API
-	nonce2, _ := manager.GetNonce(1, 0)
+	nonce2, _ := manager.GetNonce(context.Background(), 1, 0)
 	if nonce2 != 101 {
 		t.Errorf("expected nonce 101, got %d", nonce2)
 	}
@@ -114,13 +115,13 @@ func TestAPIManager_AcknowledgeFailure_NoOp(t *testing.T) {
 	manager := NewAPIManager(fetcher)
 
 	// Get a nonce
-	nonce1, _ := manager.GetNonce(1, 0)
+	nonce1, _ := manager.GetNonce(context.Background(), 1, 0)
 
 	// Acknowledge failure (should be no-op)
 	manager.AcknowledgeFailure(1, 0, nonce1)
 
 	// Next call should still fetch from API
-	nonce2, _ := manager.GetNonce(1, 0)
+	nonce2, _ := manager.GetNonce(context.Background(), 1, 0)
 	if nonce2 != 101 {
 		t.Errorf("expected nonce 101, got %d", nonce2)
 	}
@@ -137,13 +138,13 @@ func TestAPIManager_Reset_NoOp(t *testing.T) {
 	manager := NewAPIManager(fetcher)
 
 	// Get a nonce
-	_, _ = manager.GetNonce(1, 0) //nolint:errcheck // Testing side effect
+	_, _ = manager.GetNonce(context.Background(), 1, 0) //nolint:errcheck // Testing side effect
 
 	// Reset (should be no-op)
 	manager.Reset(1, 0)
 
 	// Next call should still fetch from API as normal
-	nonce, _ := manager.GetNonce(1, 0)
+	nonce, _ := manager.GetNonce(context.Background(), 1, 0)
 	if nonce != 101 {
 		t.Errorf("expected nonce 101, got %d", nonce)
 	}
@@ -156,13 +157,13 @@ func TestAPIManager_ResetAll_NoOp(t *testing.T) {
 	manager := NewAPIManager(fetcher)
 
 	// Get a nonce
-	_, _ = manager.GetNonce(1, 0) //nolint:errcheck // Testing side effect
+	_, _ = manager.GetNonce(context.Background(), 1, 0) //nolint:errcheck // Testing side effect
 
 	// Reset all (should be no-op)
 	manager.ResetAll()
 
 	// Next call should still fetch from API as normal
-	nonce, _ := manager.GetNonce(1, 0)
+	nonce, _ := manager.GetNonce(context.Background(), 1, 0)
 	if nonce != 101 {
 		t.Errorf("expected nonce 101, got %d", nonce)
 	}

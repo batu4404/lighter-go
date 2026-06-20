@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -25,7 +26,7 @@ func main() {
 	fmt.Printf("Connected to %s (chain ID: %d)\n\n", network.String(), network.ChainID())
 
 	// First, get active orders to see what we can cancel
-	orders, err := signerClient.GetOpenOrders(nil)
+	orders, err := signerClient.GetOpenOrders(context.Background(), nil)
 	if err != nil {
 		log.Fatalf("Failed to get open orders: %v", err)
 	}
@@ -54,7 +55,7 @@ func main() {
 		Nonce: &nonce,
 	}
 
-	txInfo, err := signerClient.CancelAllOrders(opts)
+	txInfo, err := signerClient.CancelAllOrders(context.Background(), opts)
 	if err != nil {
 		log.Fatalf("Failed to create cancel all orders transaction: %v", err)
 	}
@@ -63,7 +64,7 @@ func main() {
 	fmt.Printf("  TX Hash: %s\n", txInfo.GetTxHash())
 
 	// Submit to API
-	resp, err := signerClient.SendAndSubmit(txInfo)
+	resp, err := signerClient.SendAndSubmit(context.Background(), txInfo)
 	if err != nil {
 		log.Fatalf("Failed to submit cancel all: %v", err)
 	}

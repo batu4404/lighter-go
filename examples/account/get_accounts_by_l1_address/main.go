@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -23,7 +24,7 @@ func main() {
 
 	fmt.Printf("Looking up accounts for L1 address: %s\n\n", l1Address)
 
-	accounts, err := httpClient.Account().GetAccountsByL1Address(l1Address)
+	accounts, err := httpClient.Account().GetAccountsByL1Address(context.Background(), l1Address)
 	if err != nil {
 		log.Fatalf("Failed to get accounts: %v", err)
 	}

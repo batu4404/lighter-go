@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
@@ -66,7 +67,7 @@ func main() {
 		Orders:       orders,
 	}
 
-	txInfo, err := signerClient.GetCreateGroupedOrdersTransaction(req, nil)
+	txInfo, err := signerClient.GetCreateGroupedOrdersTransaction(context.Background(), req, nil)
 	if err != nil {
 		log.Fatalf("Failed to create grouped orders: %v", err)
 	}
@@ -78,7 +79,7 @@ func main() {
 	fmt.Printf("  Order 2: Stop Loss @ $2800\n")
 
 	// Submit to API
-	resp, err := signerClient.SendAndSubmit(txInfo)
+	resp, err := signerClient.SendAndSubmit(context.Background(), txInfo)
 	if err != nil {
 		log.Fatalf("Failed to submit orders: %v", err)
 	}

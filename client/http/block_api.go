@@ -1,6 +1,8 @@
 package http
 
 import (
+	"context"
+
 	core "github.com/0xJord4n/lighter-go/client"
 	"github.com/0xJord4n/lighter-go/types/api"
 )
@@ -12,9 +14,9 @@ type blockAPIImpl struct {
 // Ensure blockAPIImpl implements BlockAPI
 var _ core.BlockAPI = (*blockAPIImpl)(nil)
 
-func (b *blockAPIImpl) GetBlock(by api.QueryBy, value string) (*api.Blocks, error) {
+func (b *blockAPIImpl) GetBlock(ctx context.Context, by api.QueryBy, value string) (*api.Blocks, error) {
 	result := &api.Blocks{}
-	err := b.client.getAndParseL2HTTPResponse("api/v1/block", map[string]any{
+	err := b.client.getAndParseL2HTTPResponse(ctx, "api/v1/block", map[string]any{
 		"by":    string(by),
 		"value": value,
 	}, result)
@@ -24,7 +26,7 @@ func (b *blockAPIImpl) GetBlock(by api.QueryBy, value string) (*api.Blocks, erro
 	return result, nil
 }
 
-func (b *blockAPIImpl) GetBlocks(index *int64, limit int, sort string) (*api.Blocks, error) {
+func (b *blockAPIImpl) GetBlocks(ctx context.Context, index *int64, limit int, sort string) (*api.Blocks, error) {
 	result := &api.Blocks{}
 	params := map[string]any{
 		"limit": limit,
@@ -35,16 +37,16 @@ func (b *blockAPIImpl) GetBlocks(index *int64, limit int, sort string) (*api.Blo
 	if sort != "" {
 		params["sort"] = sort
 	}
-	err := b.client.getAndParseL2HTTPResponse("api/v1/blocks", params, result)
+	err := b.client.getAndParseL2HTTPResponse(ctx, "api/v1/blocks", params, result)
 	if err != nil {
 		return nil, err
 	}
 	return result, nil
 }
 
-func (b *blockAPIImpl) GetBlockTxs(by api.QueryBy, value string) (*api.Txs, error) {
+func (b *blockAPIImpl) GetBlockTxs(ctx context.Context, by api.QueryBy, value string) (*api.Txs, error) {
 	result := &api.Txs{}
-	err := b.client.getAndParseL2HTTPResponse("api/v1/blockTxs", map[string]any{
+	err := b.client.getAndParseL2HTTPResponse(ctx, "api/v1/blockTxs", map[string]any{
 		"by":    string(by),
 		"value": value,
 	}, result)
@@ -54,9 +56,9 @@ func (b *blockAPIImpl) GetBlockTxs(by api.QueryBy, value string) (*api.Txs, erro
 	return result, nil
 }
 
-func (b *blockAPIImpl) GetCurrentHeight() (*api.CurrentHeight, error) {
+func (b *blockAPIImpl) GetCurrentHeight(ctx context.Context) (*api.CurrentHeight, error) {
 	result := &api.CurrentHeight{}
-	err := b.client.getAndParseL2HTTPResponse("api/v1/currentHeight", map[string]any{}, result)
+	err := b.client.getAndParseL2HTTPResponse(ctx, "api/v1/currentHeight", map[string]any{}, result)
 	if err != nil {
 		return nil, err
 	}

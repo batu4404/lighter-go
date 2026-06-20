@@ -6,16 +6,18 @@
 //   - APINonceManager: Queries the API for each nonce. Slower but always accurate.
 package nonce
 
+import "context"
+
 // NonceFetcher is the interface for fetching nonce from API
 type NonceFetcher interface {
-	GetNextNonce(accountIndex int64, apiKeyIndex uint8) (int64, error)
+	GetNextNonce(ctx context.Context, accountIndex int64, apiKeyIndex uint8) (int64, error)
 }
 
 // Manager defines the interface for managing transaction nonces
 type Manager interface {
 	// GetNonce returns the next nonce to use for a transaction.
 	// This may query the API or return a cached value depending on implementation.
-	GetNonce(accountIndex int64, apiKeyIndex uint8) (int64, error)
+	GetNonce(ctx context.Context, accountIndex int64, apiKeyIndex uint8) (int64, error)
 
 	// AcknowledgeSuccess should be called after a transaction succeeds.
 	// This allows the manager to update its internal state.

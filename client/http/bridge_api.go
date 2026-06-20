@@ -1,6 +1,8 @@
 package http
 
 import (
+	"context"
+
 	core "github.com/0xJord4n/lighter-go/client"
 	"github.com/0xJord4n/lighter-go/types/api"
 )
@@ -12,45 +14,46 @@ type bridgeAPIImpl struct {
 // Ensure bridgeAPIImpl implements BridgeAPI
 var _ core.BridgeAPI = (*bridgeAPIImpl)(nil)
 
-func (b *bridgeAPIImpl) GetBridges(l1Address string) (*api.RespGetBridgesByL1Addr, error) {
-	result := &api.RespGetBridgesByL1Addr{}
-	err := b.client.getAndParseL2HTTPResponse("api/v1/bridges", map[string]any{
-		"l1_address": l1Address,
-	}, result)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-
-func (b *bridgeAPIImpl) GetIsNextBridgeFast(l1Address string) (*api.RespGetIsNextBridgeFast, error) {
-	result := &api.RespGetIsNextBridgeFast{}
-	err := b.client.getAndParseL2HTTPResponse("api/v1/bridges/isNextBridgeFast", map[string]any{
-		"l1_address": l1Address,
-	}, result)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-
-func (b *bridgeAPIImpl) GetFastBridgeInfo() (*api.RespGetFastBridgeInfo, error) {
+func (b *bridgeAPIImpl) GetFastBridgeInfo(ctx context.Context) (*api.RespGetFastBridgeInfo, error) {
 	result := &api.RespGetFastBridgeInfo{}
-	err := b.client.getAndParseL2HTTPResponse("api/v1/fastbridge/info", map[string]any{}, result)
+	err := b.client.getAndParseL2HTTPResponse(ctx, "api/v1/fastbridge/info", map[string]any{}, result)
 	if err != nil {
 		return nil, err
 	}
 	return result, nil
 }
 
-func (b *bridgeAPIImpl) CreateIntentAddress(chainID int64, fromAddr string, amount string, isExternalDeposit bool) (*api.RespCreateIntentAddress, error) {
+func (b *bridgeAPIImpl) CreateIntentAddress(ctx context.Context, chainID int64, fromAddr string, amount string, isExternalDeposit bool) (*api.RespCreateIntentAddress, error) {
 	result := &api.RespCreateIntentAddress{}
-	err := b.client.postFormL2HTTPResponse("api/v1/createIntentAddress", map[string]any{
+	err := b.client.postURLEncodedL2HTTPResponseWithAuth(ctx, "api/v1/createIntentAddress", map[string]any{
 		"chain_id":            chainID,
 		"from_addr":           fromAddr,
 		"amount":              amount,
 		"is_external_deposit": isExternalDeposit,
-	}, result)
+	}, "", result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (b *bridgeAPIImpl) GetFastWithdrawInfo(ctx context.Context, accountIndex int64, auth string) (*api.FastWithdrawPoolInfo, error) {
+	result := &api.FastWithdrawPoolInfo{}
+	err := b.client.getAndParseL2HTTPResponseWithAuth(ctx, "api/v1/fastwithdraw/info", map[string]any{
+		"account_index": accountIndex,
+	}, auth, result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (b *bridgeAPIImpl) SubmitFastWithdraw(ctx context.Context, txInfo string, toAddress string, auth string) (*api.RespFastWithdraw, error) {
+	result := &api.RespFastWithdraw{}
+	err := b.client.postURLEncodedL2HTTPResponseWithAuth(ctx, "api/v1/fastwithdraw", map[string]any{
+		"tx_info":    txInfo,
+		"to_address": toAddress,
+	}, auth, result)
 	if err != nil {
 		return nil, err
 	}

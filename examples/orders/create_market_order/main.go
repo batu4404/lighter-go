@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -35,7 +36,7 @@ func main() {
 		Nonce: types.NewInt64(-1), // Auto-fetch nonce
 	}
 
-	txInfo, err := signerClient.CreateMarketOrder(marketIndex, size, isBuy, opts)
+	txInfo, err := signerClient.CreateMarketOrder(context.Background(), marketIndex, size, isBuy, opts)
 	if err != nil {
 		log.Fatalf("Failed to create market order: %v", err)
 	}
@@ -47,7 +48,7 @@ func main() {
 	fmt.Printf("  Size: %d\n", size)
 
 	// Submit to API
-	resp, err := signerClient.SendAndSubmit(txInfo)
+	resp, err := signerClient.SendAndSubmit(context.Background(), txInfo)
 	if err != nil {
 		log.Fatalf("Failed to submit order: %v", err)
 	}

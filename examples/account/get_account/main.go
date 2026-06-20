@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -17,7 +18,7 @@ func main() {
 
 	// Get account by index
 	accountIndex := "0" // Replace with your account index
-	accounts, err := httpClient.Account().GetAccount(api.QueryByIndex, accountIndex)
+	accounts, err := httpClient.Account().GetAccount(context.Background(), api.QueryByIndex, accountIndex)
 	if err != nil {
 		log.Fatalf("Failed to get account: %v", err)
 	}
@@ -37,8 +38,8 @@ func main() {
 		if len(acc.Positions) > 0 {
 			fmt.Printf("\n  Positions:\n")
 			for _, pos := range acc.Positions {
-				fmt.Printf("    Market %d: %s %s @ %s (PnL: %s)\n",
-					pos.MarketIndex, pos.Side, pos.Size, pos.EntryPrice, pos.UnrealizedPnl)
+				fmt.Printf("    Market %d: sign=%d size=%s @ %s (PnL: %s)\n",
+					pos.MarketID, pos.Sign, pos.Position, pos.AvgEntryPrice, pos.UnrealizedPnl)
 			}
 		}
 

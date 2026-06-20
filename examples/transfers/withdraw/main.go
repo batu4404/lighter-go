@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -34,7 +35,7 @@ func main() {
 		Amount:     50_000000, // 50 USDC (6 decimals)
 	}
 
-	txInfo, err := signerClient.GetWithdrawTransaction(req, nil)
+	txInfo, err := signerClient.GetWithdrawTransaction(context.Background(), req, nil)
 	if err != nil {
 		log.Fatalf("Failed to create withdraw transaction: %v", err)
 	}
@@ -47,7 +48,7 @@ func main() {
 	fmt.Println("NOTE: Withdrawals are processed after L1 confirmation.")
 
 	// Submit to API
-	resp, err := signerClient.SendAndSubmit(txInfo)
+	resp, err := signerClient.SendAndSubmit(context.Background(), txInfo)
 	if err != nil {
 		log.Fatalf("Failed to submit transaction: %v", err)
 	}

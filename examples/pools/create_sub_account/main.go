@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -28,7 +29,7 @@ func main() {
 
 	// Create a new sub-account
 	// Sub-accounts allow you to isolate trading activity
-	txInfo, err := signerClient.GetCreateSubAccountTransaction(nil)
+	txInfo, err := signerClient.GetCreateSubAccountTransaction(context.Background(), nil)
 	if err != nil {
 		log.Fatalf("Failed to create sub-account transaction: %v", err)
 	}
@@ -42,7 +43,7 @@ func main() {
 	fmt.Println("  - Track P&L independently")
 
 	// Submit to API
-	resp, err := signerClient.SendAndSubmit(txInfo)
+	resp, err := signerClient.SendAndSubmit(context.Background(), txInfo)
 	if err != nil {
 		log.Fatalf("Failed to submit transaction: %v", err)
 	}

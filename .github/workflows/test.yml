@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: ['1.21', '1.22', '1.23']
+        go-version: ['1.21', '1.22', '1.23', '1.24']
 
     steps:
       - name: Checkout code
@@ -66,8 +66,43 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: '1.24'
           cache: true
 
       - name: Run go vet
         run: go vet $(go list ./... | grep -v /examples/)
+
+  generate-drift:
+    name: Check go generate drift
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install oapi-codegen
+        run: go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.7.1
+
+      - name: Run go generate
+        run: go generate ./types/apimodels
+
+      - name: Fail on drift
+        run: |
+          if ! git diff --quiet types/apimodels/models.gen.go; then
+            echo "models.gen.go is out of date. Run 'go generate ./types/apimodels' and commit the result."
+            git diff types/apimodels/models.gen.go
+            exit 1
+          fi

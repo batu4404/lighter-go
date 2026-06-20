@@ -1,6 +1,7 @@
 package nonce
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"testing"
@@ -20,7 +21,7 @@ func newMockFetcher() *mockFetcher {
 	}
 }
 
-func (m *mockFetcher) GetNextNonce(accountIndex int64, apiKeyIndex uint8) (int64, error) {
+func (m *mockFetcher) GetNextNonce(ctx context.Context, accountIndex int64, apiKeyIndex uint8) (int64, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.calls++
@@ -59,7 +60,7 @@ func TestOptimisticManager_GetNonce_InitialFetch(t *testing.T) {
 
 	manager := NewOptimisticManager(fetcher)
 
-	nonce, err := manager.GetNonce(1, 0)
+	nonce, err := manager.GetNonce(context.Background(), 1, 0)
 	if err != nil {
 		t.Fatalf("GetNonce failed: %v", err)
 	}
@@ -80,18 +81,18 @@ func TestOptimisticManager_GetNonce_LocalIncrement(t *testing.T) {
 	manager := NewOptimisticManager(fetcher)
 
 	// First call fetches from API
-	nonce1, err := manager.GetNonce(1, 0)
+	nonce1, err := manager.GetNonce(context.Background(), 1, 0)
 	if err != nil {
 		t.Fatalf("GetNonce failed: %v", err)
 	}
 
 	// Subsequent calls increment locally
-	nonce2, err := manager.GetNonce(1, 0)
+	nonce2, err := manager.GetNonce(context.Background(), 1, 0)
 	if err != nil {
 		t.Fatalf("GetNonce failed: %v", err)
 	}
 
-	nonce3, err := manager.GetNonce(1, 0)
+	nonce3, err := manager.GetNonce(context.Background(), 1, 0)
 	if err != nil {
 		t.Fatalf("GetNonce failed: %v", err)
 	}
@@ -120,9 +121,9 @@ func TestOptimisticManager_GetNonce_MultipleAccounts(t *testing.T) {
 
 	manager := NewOptimisticManager(fetcher)
 
-	nonce1, _ := manager.GetNonce(1, 0)
-	nonce2, _ := manager.GetNonce(2, 0)
-	nonce3, _ := manager.GetNonce(1, 1)
+	nonce1, _ := manager.GetNonce(context.Background(), 1, 0)
+	nonce2, _ := manager.GetNonce(context.Background(), 2, 0)
+	nonce3, _ := manager.GetNonce(context.Background(), 1, 1)
 
 	if nonce1 != 100 {
 		t.Errorf("expected nonce for account 1, key 0 to be 100, got %d", nonce1)
@@ -142,7 +143,7 @@ func TestOptimisticManager_GetNonce_FetchError(t *testing.T) {
 
 	manager := NewOptimisticManager(fetcher)
 
-	_, err := manager.GetNonce(1, 0)
+	_, err := manager.GetNonce(context.Background(), 1, 0)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -159,8 +160,8 @@ func TestOptimisticManager_AcknowledgeSuccess(t *testing.T) {
 	manager := NewOptimisticManager(fetcher)
 
 	// Get nonces
-	nonce1, _ := manager.GetNonce(1, 0)
-	nonce2, _ := manager.GetNonce(1, 0)
+	nonce1, _ := manager.GetNonce(context.Background(), 1, 0)
+	nonce2, _ := manager.GetNonce(context.Background(), 1, 0)
 
 	// Both should be pending
 	if manager.PendingCount(1, 0) != 2 {
@@ -188,8 +189,8 @@ func TestOptimisticManager_AcknowledgeFailure(t *testing.T) {
 	manager := NewOptimisticManager(fetcher)
 
 	// Get initial nonce
-	nonce1, _ := manager.GetNonce(1, 0)
-	nonce2, _ := manager.GetNonce(1, 0)
+	nonce1, _ := manager.GetNonce(context.Background(), 1, 0)
+	nonce2, _ := manager.GetNonce(context.Background(), 1, 0)
 
 	if nonce1 != 100 || nonce2 != 101 {
 		t.Fatalf("unexpected nonces: %d, %d", nonce1, nonce2)
@@ -200,7 +201,7 @@ func TestOptimisticManager_AcknowledgeFailure(t *testing.T) {
 
 	// State should be reset, next call should fetch from API
 	// Since mock fetcher increments on each call, it should now return 101
-	nonce3, _ := manager.GetNonce(1, 0)
+	nonce3, _ := manager.GetNonce(context.Background(), 1, 0)
 	if nonce3 != 101 {
 		t.Errorf("expected nonce 101 after failure reset, got %d", nonce3)
 	}
@@ -219,15 +220,15 @@ func TestOptimisticManager_Reset(t *testing.T) {
 	manager := NewOptimisticManager(fetcher)
 
 	// Get nonces for both accounts
-	_, _ = manager.GetNonce(1, 0)
-	_, _ = manager.GetNonce(2, 0)
+	_, _ = manager.GetNonce(context.Background(), 1, 0)
+	_, _ = manager.GetNonce(context.Background(), 2, 0)
 
 	// Reset only account 1
 	manager.Reset(1, 0)
 
 	// Account 1 should fetch from API again, account 2 should use cache
-	nonce1, _ := manager.GetNonce(1, 0)
-	nonce2, _ := manager.GetNonce(2, 0)
+	nonce1, _ := manager.GetNonce(context.Background(), 1, 0)
+	nonce2, _ := manager.GetNonce(context.Background(), 2, 0)
 
 	// Account 1 was reset, fetched 101 (mock increments on each fetch)
 	if nonce1 != 101 {
@@ -248,8 +249,8 @@ func TestOptimisticManager_ResetAll(t *testing.T) {
 	manager := NewOptimisticManager(fetcher)
 
 	// Get nonces for both accounts
-	_, _ = manager.GetNonce(1, 0)
-	_, _ = manager.GetNonce(2, 0)
+	_, _ = manager.GetNonce(context.Background(), 1, 0)
+	_, _ = manager.GetNonce(context.Background(), 2, 0)
 
 	initialCalls := fetcher.getCalls()
 
@@ -257,8 +258,8 @@ func TestOptimisticManager_ResetAll(t *testing.T) {
 	manager.ResetAll()
 
 	// Both should fetch from API again
-	_, _ = manager.GetNonce(1, 0)
-	_, _ = manager.GetNonce(2, 0)
+	_, _ = manager.GetNonce(context.Background(), 1, 0)
+	_, _ = manager.GetNonce(context.Background(), 2, 0)
 
 	if fetcher.getCalls() != initialCalls+2 {
 		t.Errorf("expected %d fetch calls after reset all, got %d", initialCalls+2, fetcher.getCalls())
@@ -280,7 +281,7 @@ func TestOptimisticManager_ConcurrentAccess(t *testing.T) {
 	for i := 0; i < goroutines; i++ {
 		go func() {
 			defer wg.Done()
-			nonce, err := manager.GetNonce(1, 0)
+			nonce, err := manager.GetNonce(context.Background(), 1, 0)
 			if err != nil {
 				t.Errorf("GetNonce failed: %v", err)
 				return

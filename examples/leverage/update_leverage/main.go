@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -36,7 +37,7 @@ func main() {
 		MarginMode:            0,   // Cross margin
 	}
 
-	txInfo, err := signerClient.GetUpdateLeverageTransaction(req, nil)
+	txInfo, err := signerClient.GetUpdateLeverageTransaction(context.Background(), req, nil)
 	if err != nil {
 		log.Fatalf("Failed to create update leverage transaction: %v", err)
 	}
@@ -51,7 +52,7 @@ func main() {
 	fmt.Printf("  Margin Mode: %s\n", map[uint8]string{0: "Cross", 1: "Isolated"}[req.MarginMode])
 
 	// Submit to API
-	resp, err := signerClient.SendAndSubmit(txInfo)
+	resp, err := signerClient.SendAndSubmit(context.Background(), txInfo)
 	if err != nil {
 		log.Fatalf("Failed to submit transaction: %v", err)
 	}

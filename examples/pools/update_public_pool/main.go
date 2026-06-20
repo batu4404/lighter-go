@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -36,7 +37,7 @@ func main() {
 		MinOperatorShareRate: 50,  // Minimum operator share rate
 	}
 
-	txInfo, err := signerClient.GetUpdatePublicPoolTransaction(req, nil)
+	txInfo, err := signerClient.GetUpdatePublicPoolTransaction(context.Background(), req, nil)
 	if err != nil {
 		log.Fatalf("Failed to create update public pool transaction: %v", err)
 	}
@@ -48,7 +49,7 @@ func main() {
 	fmt.Printf("  Operator Fee: %.1f%%\n", float64(req.OperatorFee)/100)
 
 	// Submit to API
-	resp, err := signerClient.SendAndSubmit(txInfo)
+	resp, err := signerClient.SendAndSubmit(context.Background(), txInfo)
 	if err != nil {
 		log.Fatalf("Failed to submit transaction: %v", err)
 	}

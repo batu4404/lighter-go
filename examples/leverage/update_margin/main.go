@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -35,7 +36,7 @@ func main() {
 		Direction:   0,         // Add margin
 	}
 
-	txInfo, err := signerClient.GetUpdateMarginTransaction(req, nil)
+	txInfo, err := signerClient.GetUpdateMarginTransaction(context.Background(), req, nil)
 	if err != nil {
 		log.Fatalf("Failed to create update margin transaction: %v", err)
 	}
@@ -47,7 +48,7 @@ func main() {
 	fmt.Printf("  Direction: %s\n", map[uint8]string{0: "Add", 1: "Remove"}[req.Direction])
 
 	// Submit to API
-	resp, err := signerClient.SendAndSubmit(txInfo)
+	resp, err := signerClient.SendAndSubmit(context.Background(), txInfo)
 	if err != nil {
 		log.Fatalf("Failed to submit transaction: %v", err)
 	}

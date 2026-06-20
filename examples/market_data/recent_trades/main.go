@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
@@ -21,7 +22,7 @@ func main() {
 
 	fmt.Printf("Fetching last %d trades for market %d...\n\n", limit, marketIndex)
 
-	trades, err := httpClient.Order().GetRecentTrades(marketIndex, limit)
+	trades, err := httpClient.Order().GetRecentTrades(context.Background(), marketIndex, limit)
 	if err != nil {
 		log.Fatalf("Failed to get recent trades: %v", err)
 	}

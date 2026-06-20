@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"sync"
@@ -22,7 +23,7 @@ var (
 
 // GenerateAPIKey generates a new API key pair from a seed
 func GenerateAPIKey() (string, string, error) {
-	key := curve.SampleScalar(nil)
+	key := curve.SampleScalar()
 	publicKeyStr := hexutil.Encode(schnorr.SchnorrPkFromSk(key).ToLittleEndianBytes())
 	privateKeyStr := hexutil.Encode(key.ToLittleEndianBytes())
 
@@ -65,7 +66,7 @@ func GetClient(apiKeyIndex uint8, accountIndex int64) (*TxClient, error) {
 // CreateClient creates a new TxClient and stores it
 // httpClientFactory is a function that creates an HTTP client from a URL string
 func CreateClient(httpClient MinimalHTTPClient, privateKey string, chainId uint32, apiKeyIndex uint8, accountIndex int64) (*TxClient, error) {
-	if accountIndex < 0 {
+	if accountIndex <= 0 {
 		return nil, fmt.Errorf("invalid account index")
 	}
 
@@ -92,9 +93,9 @@ func CreateClient(httpClient MinimalHTTPClient, privateKey string, chainId uint3
 }
 
 // Check validates that the client exists and the API key matches the one on the server
-func (c *TxClient) Check() error {
+func (c *TxClient) Check(ctx context.Context) error {
 	// check that the API key registered on Lighter matches this one
-	publicKey, err := c.HTTP().GetApiKey(c.accountIndex, c.apiKeyIndex)
+	publicKey, err := c.HTTP().GetApiKey(ctx, c.accountIndex, c.apiKeyIndex)
 	if err != nil {
 		return fmt.Errorf("failed to get Api Keys. err: %v", err)
 	}
@@ -103,9 +104,19 @@ func (c *TxClient) Check() error {
 	pubKeyStr := hexutil.Encode(pubKeyBytes[:])
 	pubKeyStr = strings.Replace(pubKeyStr, "0x", "", 1)
 
+	if publicKey == pubKeyStr {
+		return nil
+	}
+
+	// Cached value may be stale (e.g. api keys were rotated server-side).
+	// Bust the cache and let GetApiKey refetch.
+	c.HTTP().InvalidateApiKeys(c.accountIndex)
+	publicKey, err = c.HTTP().GetApiKey(ctx, c.accountIndex, c.apiKeyIndex)
+	if err != nil {
+		return fmt.Errorf("failed to get Api Keys. err: %v", err)
+	}
 	if publicKey != pubKeyStr {
 		return fmt.Errorf("private key does not match the one on Lighter. ownPubKey: %s response: %+v", pubKeyStr, publicKey)
 	}
-
 	return nil
 }

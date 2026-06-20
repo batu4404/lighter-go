@@ -1,12 +1,47 @@
 # lighter-go
 
-The official Go SDK for the Lighter trading platform. This SDK provides full feature parity with the [Python SDK](https://github.com/elliottech/lighter-python), including:
+The official Go SDK for the Lighter trading platform. This SDK provides full feature parity with the [Python SDK](https://github.com/elliottech/lighter-python) (tracking **v1.1.1**), including:
 
-- **Transaction signing** - Sign all Lighter L2 transactions
-- **Full HTTP API client** - Access all REST endpoints
+- **Transaction signing** - Sign all Lighter L2 transactions (signature-identical to the Python SDK; verified by `tools/parity_check.py`)
+- **Full HTTP API client** - All REST endpoints, matching the Python SDK 1:1
 - **WebSocket client** - Real-time order book and account streaming
 - **Convenience methods** - High-level trading functions
 - **Nonce management** - Optimistic and API-based nonce strategies
+
+### HTTP API models
+
+Field-faithful Go types for every schema in the Lighter OpenAPI spec live in
+`types/apimodels` and are generated from `lighter-python/openapi.json` via
+[`oapi-codegen`](https://github.com/oapi-codegen/oapi-codegen). Regenerate
+after an upstream spec bump with:
+
+```bash
+go generate ./types/apimodels
+```
+
+Endpoint methods are hand-wired in `client/http` (rather than generated) so the
+signer-coupled `SendTx` path is preserved. The newer endpoints (RFQ, full
+referral, API tokens, leases, maker-only keys, stats/config, etc.) return the
+generated `apimodels` types.
+
+## Staying in sync with upstream
+
+The three surfaces have different sources of truth, so each has its own check
+(run via [`just`](https://github.com/casey/just)):
+
+| Surface | Source of truth | Check | When to run |
+|---------|-----------------|-------|-------------|
+| HTTP models | `lighter-python/openapi.json` | `just gen-models` (regenerate, diff) | after a `lighter-python` bump |
+| Signer | the native signer in `lighter-python` | `just parity-signer` (byte-for-byte) | after any signer change or upstream bump |
+| WebSocket | the **live server** (no schema exists) | `just ws-conformance` | periodically; before releases |
+
+The WebSocket protocol has **no machine-readable schema** -- `openapi.json`
+describes zero stream endpoints, and `lighter-python`'s `ws_client.py` only
+implements 2 of this SDK's channels. The running server is therefore the only
+authority, so `just ws-conformance` connects live and asserts every channel
+still acks. Public channels run unauthenticated; export `LIGHTER_WS_AUTH` and
+`LIGHTER_WS_ACCOUNT` to also exercise the account/pool channels. A failure
+means Lighter changed their WS protocol and this client has drifted.
 
 ## Installation
 

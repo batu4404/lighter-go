@@ -30,6 +30,7 @@ import (
 	"crypto/tls"
 	"net"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
@@ -48,7 +49,11 @@ var (
 		MaxIdleConnsPerHost: 100,
 		IdleConnTimeout:     10 * time.Second,
 		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: false,
+			// TLS certificate verification is ON by default. It can be
+			// disabled for local development against a self-signed endpoint
+			// by setting LIGHTER_INSECURE_SKIP_TLS_VERIFY=1. Never set this in
+			// production: it exposes traffic to man-in-the-middle attacks.
+			InsecureSkipVerify: insecureSkipTLSVerify(), //nolint:gosec // opt-in, defaults secure
 			MinVersion:         tls.VersionTLS12,
 		},
 	}
@@ -58,6 +63,18 @@ var (
 		Transport: transport,
 	}
 )
+
+// insecureSkipTLSVerify reports whether TLS verification should be skipped,
+// controlled by the LIGHTER_INSECURE_SKIP_TLS_VERIFY env var. Defaults to
+// false (secure).
+func insecureSkipTLSVerify() bool {
+	switch os.Getenv("LIGHTER_INSECURE_SKIP_TLS_VERIFY") {
+	case "1", "true", "TRUE", "yes":
+		return true
+	default:
+		return false
+	}
+}
 
 // Ensure client implements both interfaces
 var _ core.MinimalHTTPClient = (*client)(nil)
@@ -74,6 +91,7 @@ type client struct {
 	blockAPI       *blockAPIImpl
 	bridgeAPI      *bridgeAPIImpl
 	infoAPI        *infoAPIImpl
+	referralAPI    *referralAPIImpl
 
 	// Mutex for lazy initialization
 	mu sync.Mutex
@@ -189,6 +207,17 @@ func (c *client) Info() core.InfoAPI {
 		c.infoAPI = &infoAPIImpl{client: c}
 	}
 	return c.infoAPI
+}
+
+// Referral returns the ReferralAPI for referral operations
+func (c *client) Referral() core.ReferralAPI {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.referralAPI == nil {
+		c.referralAPI = &referralAPIImpl{client: c}
+	}
+	return c.referralAPI
 }
 
 // Endpoint returns the base URL of the client
