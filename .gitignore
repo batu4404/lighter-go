@@ -3,3 +3,10 @@ vendor
 build/*
 !build/.keep
 /build
+# transient patched OpenAPI spec for Go codegen (see tools/patch_openapi_for_go.py)
+tools/_openapi_go.json
+
+# macOS / built binaries
+.DS_Store
+/account_orders_stream
+/test_changepubkey

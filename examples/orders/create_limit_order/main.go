@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
@@ -26,9 +27,9 @@ func main() {
 	fmt.Printf("Connected to %s (chain ID: %d)\n", network.String(), network.ChainID())
 
 	// Create a limit buy order
-	marketIndex := int16(0)            // ETH-USD perp
-	size := int64(1000000)             // 0.01 ETH (scaled)
-	price := uint32(3000_000000)       // $3000 (scaled) - price is in 6 decimals
+	marketIndex := int16(0)      // ETH-USD perp
+	size := int64(1000000)       // 0.01 ETH (scaled)
+	price := uint32(3000_000000) // $3000 (scaled) - price is in 6 decimals
 	isBuy := true
 	expiry := time.Now().Add(24 * time.Hour).UnixMilli()
 
@@ -36,7 +37,7 @@ func main() {
 		Nonce: types.NewInt64(-1),
 	}
 
-	txInfo, err := signerClient.CreateLimitOrder(marketIndex, size, price, isBuy, expiry, opts)
+	txInfo, err := signerClient.CreateLimitOrder(context.Background(), marketIndex, size, price, isBuy, expiry, opts)
 	if err != nil {
 		log.Fatalf("Failed to create limit order: %v", err)
 	}
@@ -50,7 +51,7 @@ func main() {
 	fmt.Printf("  Expiry: %s\n", time.UnixMilli(expiry).Format(time.RFC3339))
 
 	// Submit to API
-	resp, err := signerClient.SendAndSubmit(txInfo)
+	resp, err := signerClient.SendAndSubmit(context.Background(), txInfo)
 	if err != nil {
 		log.Fatalf("Failed to submit order: %v", err)
 	}

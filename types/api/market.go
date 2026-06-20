@@ -1,24 +1,26 @@
 package api
 
 // Candlestick represents OHLCV data for a time period
+// Supports abbreviated keys from /api/v1/candles (returns numbers, not strings)
 type Candlestick struct {
-	MarketIndex int16  `json:"market_index,omitempty"`
-	Timestamp   int64  `json:"timestamp"` // Start time of the candle
-	Open        string `json:"open"`
-	High        string `json:"high"`
-	Low         string `json:"low"`
-	Close       string `json:"close"`
-	Volume      string `json:"volume"`
-	QuoteVolume string `json:"quote_volume,omitempty"`
-	TradeCount  int64  `json:"trade_count,omitempty"`
+	MarketIndex int16   `json:"market_index,omitempty"`
+	Timestamp   int64   `json:"t"` // Abbreviated: t for timestamp
+	Open        float64 `json:"o"` // Abbreviated: o for open
+	High        float64 `json:"h"` // Abbreviated: h for high
+	Low         float64 `json:"l"` // Abbreviated: l for low
+	Close       float64 `json:"c"` // Abbreviated: c for close
+	Volume      float64 `json:"v"` // Abbreviated: v for volume (base)
+	QuoteVolume float64 `json:"V"` // Abbreviated: V for quote volume
+	TradeCount  int64   `json:"i"` // Abbreviated: i for trade index/count
 }
 
 // Candlesticks is the response for candlestick queries
+// /api/v1/candles uses abbreviated keys: r (resolution), c (candles array)
 type Candlesticks struct {
 	BaseResponse
-	MarketIndex  int16         `json:"market_index"`
-	Resolution   string        `json:"resolution"`
-	Candlesticks []Candlestick `json:"candlesticks"`
+	MarketIndex  int16         `json:"market_index,omitempty"`
+	Resolution   string        `json:"r"`              // Abbreviated: r for resolution
+	Candlesticks []Candlestick `json:"c"`              // Abbreviated: c for candles array
 }
 
 // DetailedCandlestick includes additional statistics

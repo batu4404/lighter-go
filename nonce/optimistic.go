@@ -1,6 +1,7 @@
 package nonce
 
 import (
+	"context"
 	"sync"
 )
 
@@ -32,7 +33,7 @@ func NewOptimisticManager(fetcher NonceFetcher) *OptimisticManager {
 // GetNonce returns the next nonce to use for a transaction.
 // If no local nonce exists, it fetches from the API.
 // Otherwise, it increments and returns the local nonce.
-func (m *OptimisticManager) GetNonce(accountIndex int64, apiKeyIndex uint8) (int64, error) {
+func (m *OptimisticManager) GetNonce(ctx context.Context, accountIndex int64, apiKeyIndex uint8) (int64, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -47,7 +48,7 @@ func (m *OptimisticManager) GetNonce(accountIndex int64, apiKeyIndex uint8) (int
 	}
 
 	// Fetch from API
-	nonce, err := m.fetcher.GetNextNonce(accountIndex, apiKeyIndex)
+	nonce, err := m.fetcher.GetNextNonce(ctx, accountIndex, apiKeyIndex)
 	if err != nil {
 		return 0, err
 	}

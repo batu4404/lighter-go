@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
@@ -39,7 +40,7 @@ func main() {
 		Time:        time.Now().UnixMilli(),
 	}
 
-	txInfo, err := signerClient.GetCancelAllOrdersTransaction(req, nil)
+	txInfo, err := signerClient.GetCancelAllOrdersTransaction(context.Background(), req, nil)
 	if err != nil {
 		log.Fatalf("Failed to create cancel all orders transaction: %v", err)
 	}
@@ -50,7 +51,7 @@ func main() {
 	fmt.Printf("  Cancels all matching orders\n")
 
 	// Submit to API
-	resp, err := signerClient.SendAndSubmit(txInfo)
+	resp, err := signerClient.SendAndSubmit(context.Background(), txInfo)
 	if err != nil {
 		log.Fatalf("Failed to submit transaction: %v", err)
 	}

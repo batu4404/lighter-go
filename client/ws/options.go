@@ -23,15 +23,18 @@ type Options struct {
 	ErrorBufferSize       int // Default: 10
 
 	// Callbacks (optional, for Python-style usage)
-	OnConnect           func()
-	OnDisconnect        func(error)
-	OnOrderBookUpdate   func(*OrderBookUpdate)
-	OnTradeUpdate       func(*TradeUpdate)
-	OnMarketStatsUpdate func(*MarketStatsUpdate)
-	OnHeightUpdate      func(*HeightUpdate)
-	OnAccountUpdate     func(*AccountUpdate)
-	OnTxResult          func(*TxResult)
-	OnError             func(error)
+	OnConnect                 func()
+	OnDisconnect              func(error)
+	OnOrderBookUpdate         func(*OrderBookUpdate)
+	OnTradeUpdate             func(*TradeUpdate)
+	OnMarketStatsUpdate       func(*MarketStatsUpdate)
+	OnHeightUpdate            func(*HeightUpdate)
+	OnAccountUpdate           func(*AccountUpdate)
+	OnAccountAllOrdersUpdate  func(*AccountAllOrdersUpdate)
+	OnAccountAllTradesUpdate  func(*AccountAllTradesUpdate)
+	OnAccountAllPositionsUpdate func(*AccountAllPositionsUpdate)
+	OnTxResult                func(*TxResult)
+	OnError                   func(error)
 }
 
 // DefaultOptions returns the default WebSocket client options
@@ -127,6 +130,24 @@ func (o *Options) WithOnAccountUpdate(fn func(*AccountUpdate)) *Options {
 // WithOnTxResult sets the transaction result callback
 func (o *Options) WithOnTxResult(fn func(*TxResult)) *Options {
 	o.OnTxResult = fn
+	return o
+}
+
+// WithOnAccountAllOrdersUpdate sets the account all orders update callback
+func (o *Options) WithOnAccountAllOrdersUpdate(fn func(*AccountAllOrdersUpdate)) *Options {
+	o.OnAccountAllOrdersUpdate = fn
+	return o
+}
+
+// WithOnAccountAllTradesUpdate sets the account all trades update callback
+func (o *Options) WithOnAccountAllTradesUpdate(fn func(*AccountAllTradesUpdate)) *Options {
+	o.OnAccountAllTradesUpdate = fn
+	return o
+}
+
+// WithOnAccountAllPositionsUpdate sets the account all positions update callback
+func (o *Options) WithOnAccountAllPositionsUpdate(fn func(*AccountAllPositionsUpdate)) *Options {
+	o.OnAccountAllPositionsUpdate = fn
 	return o
 }
 

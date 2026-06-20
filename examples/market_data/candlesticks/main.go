@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
@@ -29,7 +30,7 @@ func main() {
 
 	fmt.Printf("Fetching last %d 1h candles for market %d...\n\n", countBack, marketIndex)
 
-	candles, err := httpClient.Candlestick().GetCandlesticks(marketIndex, resolution, timestamps, countBack)
+	candles, err := httpClient.Candlestick().GetCandlesticks(context.Background(), marketIndex, resolution, timestamps, countBack)
 	if err != nil {
 		log.Fatalf("Failed to get candlesticks: %v", err)
 	}
@@ -43,7 +44,7 @@ func main() {
 
 	for _, candle := range candles.Candlesticks {
 		ts := time.UnixMilli(candle.Timestamp)
-		fmt.Printf("%-20s %-12s %-12s %-12s %-12s %-15s\n",
+		fmt.Printf("%-20s %-12.6f %-12.6f %-12.6f %-12.6f %-15.6f\n",
 			ts.Format("2006-01-02 15:04"),
 			candle.Open,
 			candle.High,

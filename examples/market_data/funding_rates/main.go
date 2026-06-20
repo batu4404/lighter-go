@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
@@ -16,7 +17,7 @@ func main() {
 	fmt.Printf("Connected to %s\n", network.String())
 	fmt.Println("Fetching current funding rates for all markets...")
 
-	fundingRates, err := httpClient.Candlestick().GetFundingRates()
+	fundingRates, err := httpClient.Candlestick().GetFundingRates(context.Background())
 	if err != nil {
 		log.Fatalf("Failed to get funding rates: %v", err)
 	}

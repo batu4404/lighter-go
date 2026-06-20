@@ -79,9 +79,9 @@ func (c *wsClient) handleTypedMessage(base BaseMessage) error {
 	case MessageTypeUpdateAccountOrders:
 		return c.handleAccountUpdate(base.Channel, ChannelAccountOrders, base.Data)
 	case MessageTypeSubscribedAccountAllOrders:
-		return c.handleSubscribedAccount(base.Channel, ChannelAccountAllOrders)
+		return c.handleSubscribedAccountAllOrders(base.Channel, base.Orders)
 	case MessageTypeUpdateAccountAllOrders:
-		return c.handleAccountUpdate(base.Channel, ChannelAccountAllOrders, base.Data)
+		return c.handleAccountAllOrdersUpdate(base.Channel, base.Orders)
 	case MessageTypeSubscribedAccountAllTrades:
 		return c.handleSubscribedAccount(base.Channel, ChannelAccountAllTrades)
 	case MessageTypeUpdateAccountAllTrades:
@@ -176,6 +176,15 @@ func (c *wsClient) handleChannelMessage(base BaseMessage, rawMsg []byte) error {
 	case "account_orders":
 		return c.handleSubscribedAccount(base.Channel, ChannelAccountOrders)
 	case "account_all_orders":
+		// Parse the full message to get orders
+		var ordersMsg struct {
+			Channel string                 `json:"channel"`
+			Type    string                 `json:"type"`
+			Orders  map[string][]WsOrder   `json:"orders"`
+		}
+		if err := sonic.Unmarshal(rawMsg, &ordersMsg); err == nil && ordersMsg.Orders != nil {
+			return c.handleSubscribedAccountAllOrders(base.Channel, ordersMsg.Orders)
+		}
 		return c.handleSubscribedAccount(base.Channel, ChannelAccountAllOrders)
 	case "account_all_trades":
 		return c.handleSubscribedAccount(base.Channel, ChannelAccountAllTrades)
@@ -611,6 +620,72 @@ func (c *wsClient) handleAccountUpdate(channel string, channelType ChannelType, 
 	}
 
 	return nil
+}
+
+// handleSubscribedAccountAllOrders handles account_all_orders subscription confirmation with initial orders
+func (c *wsClient) handleSubscribedAccountAllOrders(channel string, orders map[string][]WsOrder) error {
+	accountIndex, err := parseAccountFromChannel(channel)
+	if err != nil {
+		return err
+	}
+
+	key := accountAllOrdersKey(accountIndex)
+	c.subscriptions.ConfirmSubscription(key, nil)
+
+	// Send the initial orders through the channel
+	if orders != nil {
+		update := &AccountAllOrdersUpdate{
+			AccountIndex: accountIndex,
+			Orders:       orders,
+		}
+		c.sendAccountAllOrdersUpdate(update)
+	}
+
+	return nil
+}
+
+// handleAccountAllOrdersUpdate handles account_all_orders updates
+func (c *wsClient) handleAccountAllOrdersUpdate(channel string, orders map[string][]WsOrder) error {
+	accountIndex, err := parseAccountFromChannel(channel)
+	if err != nil {
+		return err
+	}
+
+	update := &AccountAllOrdersUpdate{
+		AccountIndex: accountIndex,
+		Orders:       orders,
+	}
+
+	c.sendAccountAllOrdersUpdate(update)
+	return nil
+}
+
+func (c *wsClient) sendAccountAllOrdersUpdate(update *AccountAllOrdersUpdate) {
+	// Also send through the generic account channel for backwards compatibility
+	// by converting to AccountUpdate with raw JSON data
+	data, err := sonic.Marshal(update.Orders)
+	if err == nil {
+		genericUpdate := &AccountUpdate{
+			AccountIndex: update.AccountIndex,
+			Channel:      string(ChannelAccountAllOrders),
+			Type:         "orders",
+			Data:         data,
+		}
+
+		select {
+		case c.accountCh <- genericUpdate:
+		default:
+		}
+
+		if c.options.OnAccountUpdate != nil {
+			c.options.OnAccountUpdate(genericUpdate)
+		}
+	}
+
+	// Send through the dedicated orders channel if callback is set
+	if c.options.OnAccountAllOrdersUpdate != nil {
+		c.options.OnAccountAllOrdersUpdate(update)
+	}
 }
 
 // Transaction result handlers

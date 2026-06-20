@@ -47,3 +47,24 @@ build-windows-amd64-docker:
 build-wasm:
     go mod vendor
     GOOS=js GOARCH=wasm go build -trimpath -o ./build/lighter.wasm ./wasm/
+### Verification / upstream parity
+
+# Run the full Go test suite.
+test:
+    go test ./... -count=1
+
+# Byte-for-byte signer parity vs the lighter-python native signer.
+# Run after any signer change or upstream lighter-python bump.
+parity-signer:
+    CGO_ENABLED=1 python3 tools/parity_check.py
+
+# Live WebSocket conformance vs the running Lighter server (the only WS source
+# of truth -- there is no WS schema in openapi.json). Public channels run
+# unauthenticated; set LIGHTER_WS_AUTH + LIGHTER_WS_ACCOUNT to also exercise
+# the account/pool channels.
+ws-conformance:
+    go test -tags wsconformance -run TestWS -v ./client/ws/ -count=1
+
+# Regenerate the OpenAPI model types after a lighter-python openapi.json bump.
+gen-models:
+    go generate ./types/apimodels

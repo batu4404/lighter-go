@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -15,16 +16,17 @@ func main() {
 	network := examples.GetNetwork()
 	fmt.Printf("Connected to %s\n\n", network.String())
 
-	// Get order book for market 0 (ETH-USD)
+	// Get order book details for market 0 (ETH-USD)
 	marketIndex := int16(0)
-	orderBooks, err := httpClient.Order().GetOrderBooks(&marketIndex, api.MarketFilterAll)
+	orderBookDetails, err := httpClient.Order().GetOrderBookDetails(context.Background(), &marketIndex, api.MarketFilterAll)
 	if err != nil {
-		log.Fatalf("Failed to get order books: %v", err)
+		log.Fatalf("Failed to get order book details: %v", err)
 	}
 
-	for _, ob := range orderBooks.OrderBooks {
-		fmt.Printf("Order Book for Market %d:\n", ob.MarketIndex)
-		fmt.Printf("  Timestamp: %d\n", ob.Timestamp)
+	for _, ob := range orderBookDetails.PerpsOrderBooks {
+		fmt.Printf("Order Book for Market %d (%s):\n", ob.MarketIndex, ob.MarketSymbol)
+		fmt.Printf("  Mark Price: %s\n", ob.MarkPrice)
+		fmt.Printf("  Funding Rate: %s\n", ob.FundingRate)
 
 		fmt.Printf("\n  Top 5 Bids:\n")
 		for i, bid := range ob.Bids {

@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -17,8 +18,8 @@ func (c *TxClient) GetAuthToken(deadline time.Time) (string, error) {
 	})
 }
 
-func (c *TxClient) GetChangePubKeyTransaction(tx *types.ChangePubKeyReq, ops *types.TransactOpts) (*txtypes.L2ChangePubKeyTxInfo, error) {
-	ops, err := c.FullFillDefaultOps(ops)
+func (c *TxClient) GetChangePubKeyTransaction(ctx context.Context, tx *types.ChangePubKeyReq, ops *types.TransactOpts) (*txtypes.L2ChangePubKeyTxInfo, error) {
+	ops, err := c.FullFillDefaultOps(ctx, ops)
 	if err != nil {
 		return nil, err
 	}
@@ -34,11 +35,19 @@ func (c *TxClient) GetChangePubKeyTransaction(tx *types.ChangePubKeyReq, ops *ty
 		return nil, fmt.Errorf("failed to validate signature. error: %v", err)
 	}
 
+	// Signing a ChangePubKey is a strong signal that this account's
+	// server-side pubkey is about to change. Drop cached entries so a
+	// subsequent Check refetches from the server. (apiClient is nil when the
+	// client was created without an HTTP backend, e.g. offline signing.)
+	if c.apiClient != nil {
+		c.apiClient.InvalidateApiKeys(c.accountIndex)
+	}
+
 	return txInfo, nil
 }
 
-func (c *TxClient) GetCreateSubAccountTransaction(ops *types.TransactOpts) (*txtypes.L2CreateSubAccountTxInfo, error) {
-	ops, err := c.FullFillDefaultOps(ops)
+func (c *TxClient) GetCreateSubAccountTransaction(ctx context.Context, ops *types.TransactOpts) (*txtypes.L2CreateSubAccountTxInfo, error) {
+	ops, err := c.FullFillDefaultOps(ctx, ops)
 	if err != nil {
 		return nil, err
 	}
@@ -49,8 +58,8 @@ func (c *TxClient) GetCreateSubAccountTransaction(ops *types.TransactOpts) (*txt
 	return txInfo, nil
 }
 
-func (c *TxClient) GetCreatePublicPoolTransaction(tx *types.CreatePublicPoolTxReq, ops *types.TransactOpts) (*txtypes.L2CreatePublicPoolTxInfo, error) {
-	ops, err := c.FullFillDefaultOps(ops)
+func (c *TxClient) GetCreatePublicPoolTransaction(ctx context.Context, tx *types.CreatePublicPoolTxReq, ops *types.TransactOpts) (*txtypes.L2CreatePublicPoolTxInfo, error) {
+	ops, err := c.FullFillDefaultOps(ctx, ops)
 	if err != nil {
 		return nil, err
 	}
@@ -61,8 +70,8 @@ func (c *TxClient) GetCreatePublicPoolTransaction(tx *types.CreatePublicPoolTxRe
 	return txInfo, nil
 }
 
-func (c *TxClient) GetUpdatePublicPoolTransaction(tx *types.UpdatePublicPoolTxReq, ops *types.TransactOpts) (*txtypes.L2UpdatePublicPoolTxInfo, error) {
-	ops, err := c.FullFillDefaultOps(ops)
+func (c *TxClient) GetUpdatePublicPoolTransaction(ctx context.Context, tx *types.UpdatePublicPoolTxReq, ops *types.TransactOpts) (*txtypes.L2UpdatePublicPoolTxInfo, error) {
+	ops, err := c.FullFillDefaultOps(ctx, ops)
 	if err != nil {
 		return nil, err
 	}
@@ -73,8 +82,8 @@ func (c *TxClient) GetUpdatePublicPoolTransaction(tx *types.UpdatePublicPoolTxRe
 	return txInfo, nil
 }
 
-func (c *TxClient) GetTransferTransaction(tx *types.TransferTxReq, ops *types.TransactOpts) (*txtypes.L2TransferTxInfo, error) {
-	ops, err := c.FullFillDefaultOps(ops)
+func (c *TxClient) GetTransferTransaction(ctx context.Context, tx *types.TransferTxReq, ops *types.TransactOpts) (*txtypes.L2TransferTxInfo, error) {
+	ops, err := c.FullFillDefaultOps(ctx, ops)
 	if err != nil {
 		return nil, err
 	}
@@ -85,8 +94,8 @@ func (c *TxClient) GetTransferTransaction(tx *types.TransferTxReq, ops *types.Tr
 	return txInfo, nil
 }
 
-func (c *TxClient) GetWithdrawTransaction(tx *types.WithdrawTxReq, ops *types.TransactOpts) (*txtypes.L2WithdrawTxInfo, error) {
-	ops, err := c.FullFillDefaultOps(ops)
+func (c *TxClient) GetWithdrawTransaction(ctx context.Context, tx *types.WithdrawTxReq, ops *types.TransactOpts) (*txtypes.L2WithdrawTxInfo, error) {
+	ops, err := c.FullFillDefaultOps(ctx, ops)
 	if err != nil {
 		return nil, err
 	}
@@ -98,8 +107,8 @@ func (c *TxClient) GetWithdrawTransaction(tx *types.WithdrawTxReq, ops *types.Tr
 	return txInfo, nil
 }
 
-func (c *TxClient) GetCreateOrderTransaction(tx *types.CreateOrderTxReq, ops *types.TransactOpts) (*txtypes.L2CreateOrderTxInfo, error) {
-	ops, err := c.FullFillDefaultOps(ops)
+func (c *TxClient) GetCreateOrderTransaction(ctx context.Context, tx *types.CreateOrderTxReq, ops *types.TransactOpts) (*txtypes.L2CreateOrderTxInfo, error) {
+	ops, err := c.FullFillDefaultOps(ctx, ops)
 	if err != nil {
 		return nil, err
 	}
@@ -110,8 +119,8 @@ func (c *TxClient) GetCreateOrderTransaction(tx *types.CreateOrderTxReq, ops *ty
 	return txInfo, nil
 }
 
-func (c *TxClient) GetCreateGroupedOrdersTransaction(tx *types.CreateGroupedOrdersTxReq, ops *types.TransactOpts) (*txtypes.L2CreateGroupedOrdersTxInfo, error) {
-	ops, err := c.FullFillDefaultOps(ops)
+func (c *TxClient) GetCreateGroupedOrdersTransaction(ctx context.Context, tx *types.CreateGroupedOrdersTxReq, ops *types.TransactOpts) (*txtypes.L2CreateGroupedOrdersTxInfo, error) {
+	ops, err := c.FullFillDefaultOps(ctx, ops)
 	if err != nil {
 		return nil, err
 	}
@@ -122,8 +131,8 @@ func (c *TxClient) GetCreateGroupedOrdersTransaction(tx *types.CreateGroupedOrde
 	return txInfo, nil
 }
 
-func (c *TxClient) GetCancelOrderTransaction(tx *types.CancelOrderTxReq, ops *types.TransactOpts) (*txtypes.L2CancelOrderTxInfo, error) {
-	ops, err := c.FullFillDefaultOps(ops)
+func (c *TxClient) GetCancelOrderTransaction(ctx context.Context, tx *types.CancelOrderTxReq, ops *types.TransactOpts) (*txtypes.L2CancelOrderTxInfo, error) {
+	ops, err := c.FullFillDefaultOps(ctx, ops)
 	if err != nil {
 		return nil, err
 	}
@@ -134,8 +143,8 @@ func (c *TxClient) GetCancelOrderTransaction(tx *types.CancelOrderTxReq, ops *ty
 	return txInfo, nil
 }
 
-func (c *TxClient) GetModifyOrderTransaction(tx *types.ModifyOrderTxReq, ops *types.TransactOpts) (*txtypes.L2ModifyOrderTxInfo, error) {
-	ops, err := c.FullFillDefaultOps(ops)
+func (c *TxClient) GetModifyOrderTransaction(ctx context.Context, tx *types.ModifyOrderTxReq, ops *types.TransactOpts) (*txtypes.L2ModifyOrderTxInfo, error) {
+	ops, err := c.FullFillDefaultOps(ctx, ops)
 	if err != nil {
 		return nil, err
 	}
@@ -148,8 +157,8 @@ func (c *TxClient) GetModifyOrderTransaction(tx *types.ModifyOrderTxReq, ops *ty
 	return txInfo, nil
 }
 
-func (c *TxClient) GetCancelAllOrdersTransaction(tx *types.CancelAllOrdersTxReq, ops *types.TransactOpts) (*txtypes.L2CancelAllOrdersTxInfo, error) {
-	ops, err := c.FullFillDefaultOps(ops)
+func (c *TxClient) GetCancelAllOrdersTransaction(ctx context.Context, tx *types.CancelAllOrdersTxReq, ops *types.TransactOpts) (*txtypes.L2CancelAllOrdersTxInfo, error) {
+	ops, err := c.FullFillDefaultOps(ctx, ops)
 	if err != nil {
 		return nil, err
 	}
@@ -160,8 +169,8 @@ func (c *TxClient) GetCancelAllOrdersTransaction(tx *types.CancelAllOrdersTxReq,
 	return txInfo, nil
 }
 
-func (c *TxClient) GetMintSharesTransaction(tx *types.MintSharesTxReq, ops *types.TransactOpts) (*txtypes.L2MintSharesTxInfo, error) {
-	ops, err := c.FullFillDefaultOps(ops)
+func (c *TxClient) GetMintSharesTransaction(ctx context.Context, tx *types.MintSharesTxReq, ops *types.TransactOpts) (*txtypes.L2MintSharesTxInfo, error) {
+	ops, err := c.FullFillDefaultOps(ctx, ops)
 	if err != nil {
 		return nil, err
 	}
@@ -172,8 +181,8 @@ func (c *TxClient) GetMintSharesTransaction(tx *types.MintSharesTxReq, ops *type
 	return txInfo, nil
 }
 
-func (c *TxClient) GetBurnSharesTransaction(tx *types.BurnSharesTxReq, ops *types.TransactOpts) (*txtypes.L2BurnSharesTxInfo, error) {
-	ops, err := c.FullFillDefaultOps(ops)
+func (c *TxClient) GetBurnSharesTransaction(ctx context.Context, tx *types.BurnSharesTxReq, ops *types.TransactOpts) (*txtypes.L2BurnSharesTxInfo, error) {
+	ops, err := c.FullFillDefaultOps(ctx, ops)
 	if err != nil {
 		return nil, err
 	}
@@ -184,8 +193,8 @@ func (c *TxClient) GetBurnSharesTransaction(tx *types.BurnSharesTxReq, ops *type
 	return txInfo, nil
 }
 
-func (c *TxClient) GetUpdateLeverageTransaction(tx *types.UpdateLeverageTxReq, ops *types.TransactOpts) (*txtypes.L2UpdateLeverageTxInfo, error) {
-	ops, err := c.FullFillDefaultOps(ops)
+func (c *TxClient) GetUpdateLeverageTransaction(ctx context.Context, tx *types.UpdateLeverageTxReq, ops *types.TransactOpts) (*txtypes.L2UpdateLeverageTxInfo, error) {
+	ops, err := c.FullFillDefaultOps(ctx, ops)
 	if err != nil {
 		return nil, err
 	}
@@ -196,12 +205,80 @@ func (c *TxClient) GetUpdateLeverageTransaction(tx *types.UpdateLeverageTxReq, o
 	return txInfo, nil
 }
 
-func (c *TxClient) GetUpdateMarginTransaction(tx *types.UpdateMarginTxReq, ops *types.TransactOpts) (*txtypes.L2UpdateMarginTxInfo, error) {
-	ops, err := c.FullFillDefaultOps(ops)
+func (c *TxClient) GetUpdateMarginTransaction(ctx context.Context, tx *types.UpdateMarginTxReq, ops *types.TransactOpts) (*txtypes.L2UpdateMarginTxInfo, error) {
+	ops, err := c.FullFillDefaultOps(ctx, ops)
 	if err != nil {
 		return nil, err
 	}
 	txInfo, err := types.ConstructUpdateMarginTx(c.keyManager, c.chainId, tx, ops)
+	if err != nil {
+		return nil, err
+	}
+	return txInfo, nil
+}
+
+func (c *TxClient) GetStakeAssetsTransaction(ctx context.Context, tx *types.StakeAssetsTxReq, ops *types.TransactOpts) (*txtypes.L2StakeAssetsTxInfo, error) {
+	ops, err := c.FullFillDefaultOps(ctx, ops)
+	if err != nil {
+		return nil, err
+	}
+	txInfo, err := types.ConstructStakeAssetsTx(c.keyManager, c.chainId, tx, ops)
+	if err != nil {
+		return nil, err
+	}
+	return txInfo, nil
+}
+
+func (c *TxClient) GetUnstakeAssetsTransaction(ctx context.Context, tx *types.UnstakeAssetsTxReq, ops *types.TransactOpts) (*txtypes.L2UnstakeAssetsTxInfo, error) {
+	ops, err := c.FullFillDefaultOps(ctx, ops)
+	if err != nil {
+		return nil, err
+	}
+	txInfo, err := types.ConstructUnstakeAssetsTx(c.keyManager, c.chainId, tx, ops)
+	if err != nil {
+		return nil, err
+	}
+	return txInfo, nil
+}
+
+func (c *TxClient) GetApproveIntegratorTx(ctx context.Context, tx *types.ApproveIntegratorTxReq, ops *types.TransactOpts) (*txtypes.L2ApproveIntegratorTxInfo, error) {
+	ops, err := c.FullFillDefaultOps(ctx, ops)
+	if err != nil {
+		return nil, err
+	}
+	txInfo, err := types.ConstructApproveIntegratorTx(c.keyManager, c.chainId, tx, ops)
+	if err != nil {
+		return nil, err
+	}
+
+	pk := c.keyManager.PubKeyBytes()
+	msgHash, _ := txInfo.Hash(c.chainId)
+
+	if err := schnorr.Validate(pk[:], msgHash, txInfo.Sig); err != nil {
+		return nil, fmt.Errorf("failed to validate signature. error: %v", err)
+	}
+
+	return txInfo, nil
+}
+
+func (c *TxClient) GetUpdateAccountConfigTransaction(ctx context.Context, tx *types.UpdateAccountConfigTxReq, ops *types.TransactOpts) (*txtypes.L2UpdateAccountConfigTxInfo, error) {
+	ops, err := c.FullFillDefaultOps(ctx, ops)
+	if err != nil {
+		return nil, err
+	}
+	txInfo, err := types.ConstructUpdateAccountConfigTx(c.keyManager, c.chainId, tx, ops)
+	if err != nil {
+		return nil, err
+	}
+	return txInfo, nil
+}
+
+func (c *TxClient) GetUpdateAccountAssetConfigTransaction(ctx context.Context, tx *types.UpdateAccountAssetConfigTxReq, ops *types.TransactOpts) (*txtypes.L2UpdateAccountAssetConfigTxInfo, error) {
+	ops, err := c.FullFillDefaultOps(ctx, ops)
+	if err != nil {
+		return nil, err
+	}
+	txInfo, err := types.ConstructUpdateAccountAssetConfigTx(c.keyManager, c.chainId, tx, ops)
 	if err != nil {
 		return nil, err
 	}

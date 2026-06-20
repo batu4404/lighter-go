@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -37,7 +38,7 @@ func main() {
 		TriggerPrice: 0,           // For stop/TP orders
 	}
 
-	txInfo, err := signerClient.GetModifyOrderTransaction(req, nil)
+	txInfo, err := signerClient.GetModifyOrderTransaction(context.Background(), req, nil)
 	if err != nil {
 		log.Fatalf("Failed to create modify order transaction: %v", err)
 	}
@@ -49,7 +50,7 @@ func main() {
 	fmt.Printf("  New Price: %d\n", req.Price)
 
 	// Submit to API
-	resp, err := signerClient.SendAndSubmit(txInfo)
+	resp, err := signerClient.SendAndSubmit(context.Background(), txInfo)
 	if err != nil {
 		log.Fatalf("Failed to submit transaction: %v", err)
 	}

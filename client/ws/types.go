@@ -63,10 +63,13 @@ const (
 
 // BaseMessage is the envelope for all WebSocket messages
 type BaseMessage struct {
-	Type      MessageType     `json:"type"`
-	Channel   string          `json:"channel,omitempty"`
-	OrderBook RawMessage `json:"order_book,omitempty"`
-	Data      RawMessage `json:"data,omitempty"`
+	Type      MessageType            `json:"type"`
+	Channel   string                 `json:"channel,omitempty"`
+	OrderBook RawMessage             `json:"order_book,omitempty"`
+	Data      RawMessage             `json:"data,omitempty"`
+	Orders    map[string][]WsOrder   `json:"orders,omitempty"`    // For account_all_orders
+	Trades    map[string][]WsTrade   `json:"trades,omitempty"`    // For account_all_trades
+	Positions map[string]WsPosition  `json:"positions,omitempty"` // For account_all_positions
 }
 
 // SubscribeRequest is sent to subscribe to a channel
@@ -287,4 +290,100 @@ type ErrorData struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 	Channel string `json:"channel,omitempty"`
+}
+
+// WsOrder represents an order from WebSocket account_all_orders channel
+// This matches the format: {"order_index": 123, "price": "2000.00", ...}
+type WsOrder struct {
+	OrderIndex          int64  `json:"order_index"`
+	ClientOrderIndex    int64  `json:"client_order_index"`
+	OrderID             string `json:"order_id"`
+	ClientOrderID       string `json:"client_order_id"`
+	MarketIndex         int16  `json:"market_index"`
+	OwnerAccountIndex   int64  `json:"owner_account_index"`
+	InitialBaseAmount   string `json:"initial_base_amount"`
+	Price               string `json:"price"`
+	Nonce               int64  `json:"nonce"`
+	RemainingBaseAmount string `json:"remaining_base_amount"`
+	IsAsk               bool   `json:"is_ask"`
+	BaseSize            int64  `json:"base_size"`
+	BasePrice           int64  `json:"base_price"`
+	FilledBaseAmount    string `json:"filled_base_amount"`
+	FilledQuoteAmount   string `json:"filled_quote_amount"`
+	Side                string `json:"side"`
+	Type                string `json:"type"`
+	TimeInForce         string `json:"time_in_force"`
+	ReduceOnly          bool   `json:"reduce_only"`
+	TriggerPrice        string `json:"trigger_price"`
+	OrderExpiry         int64  `json:"order_expiry"`
+	Status              string `json:"status"`
+	TriggerStatus       string `json:"trigger_status"`
+	TriggerTime         int64  `json:"trigger_time"`
+	ParentOrderIndex    int64  `json:"parent_order_index"`
+	ParentOrderID       string `json:"parent_order_id"`
+	ToTriggerOrderID0   string `json:"to_trigger_order_id_0"`
+	ToTriggerOrderID1   string `json:"to_trigger_order_id_1"`
+	ToCancelOrderID0    string `json:"to_cancel_order_id_0"`
+	BlockHeight         int64  `json:"block_height"`
+	Timestamp           int64  `json:"timestamp"`
+	CreatedAt           int64  `json:"created_at"`
+	UpdatedAt           int64  `json:"updated_at"`
+	TransactionTime     int64  `json:"transaction_time"`
+}
+
+// WsTrade represents a trade from WebSocket account_all_trades channel
+type WsTrade struct {
+	TradeIndex       int64  `json:"trade_index"`
+	MarketIndex      int16  `json:"market_index"`
+	OrderIndex       int64  `json:"order_index"`
+	AccountIndex     int64  `json:"account_index"`
+	Side             string `json:"side"`
+	Price            string `json:"price"`
+	Size             string `json:"size"`
+	Fee              string `json:"fee"`
+	RealizedPnl      string `json:"realized_pnl"`
+	IsMaker          bool   `json:"is_maker"`
+	BlockHeight      int64  `json:"block_height"`
+	Timestamp        int64  `json:"timestamp"`
+	TransactionTime  int64  `json:"transaction_time"`
+}
+
+// WsPosition represents a position from WebSocket account_all_positions channel
+type WsPosition struct {
+	MarketIndex          int16  `json:"market_index"`
+	AccountIndex         int64  `json:"account_index"`
+	Size                 string `json:"size"`
+	Side                 string `json:"side"`
+	EntryPrice           string `json:"entry_price"`
+	MarkPrice            string `json:"mark_price"`
+	LiquidationPrice     string `json:"liquidation_price"`
+	UnrealizedPnl        string `json:"unrealized_pnl"`
+	RealizedPnl          string `json:"realized_pnl"`
+	Leverage             string `json:"leverage"`
+	MarginMode           string `json:"margin_mode"`
+	InitialMargin        string `json:"initial_margin"`
+	MaintenanceMargin    string `json:"maintenance_margin"`
+	AvailableMargin      string `json:"available_margin"`
+	Timestamp            int64  `json:"timestamp"`
+}
+
+// AccountAllOrdersUpdate represents an update from account_all_orders channel
+type AccountAllOrdersUpdate struct {
+	AccountIndex int64
+	// Orders is a map from market index (as string) to list of orders
+	Orders map[string][]WsOrder
+}
+
+// AccountAllTradesUpdate represents an update from account_all_trades channel
+type AccountAllTradesUpdate struct {
+	AccountIndex int64
+	// Trades is a map from market index (as string) to list of trades
+	Trades map[string][]WsTrade
+}
+
+// AccountAllPositionsUpdate represents an update from account_all_positions channel
+type AccountAllPositionsUpdate struct {
+	AccountIndex int64
+	// Positions is a map from market index (as string) to position
+	Positions map[string]WsPosition
 }

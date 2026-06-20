@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -60,7 +61,7 @@ func main() {
 	}
 
 	// ChangePubKey handles L1 signing internally - just pass the eth private key
-	resp, err := signerClient.ChangePubKey(ethPrivateKey, req, nil)
+	resp, err := signerClient.ChangePubKey(context.Background(), ethPrivateKey, req, nil)
 	if err != nil {
 		log.Fatalf("Failed to submit change pub key: %v", err)
 	}

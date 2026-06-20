@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
@@ -38,7 +39,7 @@ func main() {
 		Nonce: &nonce,
 	}
 
-	txInfo, err := signerClient.CreateTakeProfitOrder(marketIndex, size, triggerPrice, isBuy, expiry, opts)
+	txInfo, err := signerClient.CreateTakeProfitOrder(context.Background(), marketIndex, size, triggerPrice, isBuy, expiry, opts)
 	if err != nil {
 		log.Fatalf("Failed to create take-profit order: %v", err)
 	}
@@ -52,7 +53,7 @@ func main() {
 	fmt.Printf("  Expiry: %s\n", time.UnixMilli(expiry).Format(time.RFC3339))
 
 	// Submit to API
-	resp, err := signerClient.SendAndSubmit(txInfo)
+	resp, err := signerClient.SendAndSubmit(context.Background(), txInfo)
 	if err != nil {
 		log.Fatalf("Failed to submit order: %v", err)
 	}

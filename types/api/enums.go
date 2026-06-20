@@ -201,17 +201,18 @@ const (
 )
 
 // CandlestickResolution represents candlestick resolution
+// Uses lowercase format that /api/v1/candles expects
 type CandlestickResolution string
 
 const (
-	Resolution1m  CandlestickResolution = "1"
-	Resolution5m  CandlestickResolution = "5"
-	Resolution15m CandlestickResolution = "15"
-	Resolution30m CandlestickResolution = "30"
-	Resolution1h  CandlestickResolution = "60"
-	Resolution4h  CandlestickResolution = "240"
-	Resolution1d  CandlestickResolution = "1D"
-	Resolution1w  CandlestickResolution = "1W"
+	Resolution1m  CandlestickResolution = "1m"
+	Resolution5m  CandlestickResolution = "5m"
+	Resolution15m CandlestickResolution = "15m"
+	Resolution30m CandlestickResolution = "30m"
+	Resolution1h  CandlestickResolution = "1h"
+	Resolution4h  CandlestickResolution = "4h"
+	Resolution1d  CandlestickResolution = "1d"
+	Resolution1w  CandlestickResolution = "1w"
 )
 
 // FundingResolution represents funding resolution

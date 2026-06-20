@@ -1,7 +1,7 @@
 package http
 
 import (
-	"fmt"
+	"context"
 
 	core "github.com/0xJord4n/lighter-go/client"
 	"github.com/0xJord4n/lighter-go/types/api"
@@ -14,9 +14,9 @@ type accountAPIImpl struct {
 // Ensure accountAPIImpl implements AccountAPI
 var _ core.AccountAPI = (*accountAPIImpl)(nil)
 
-func (a *accountAPIImpl) GetAccount(by api.QueryBy, value string) (*api.DetailedAccounts, error) {
+func (a *accountAPIImpl) GetAccount(ctx context.Context, by api.QueryBy, value string) (*api.DetailedAccounts, error) {
 	result := &api.DetailedAccounts{}
-	err := a.client.getAndParseL2HTTPResponse("api/v1/account", map[string]any{
+	err := a.client.getAndParseL2HTTPResponse(ctx, "api/v1/account", map[string]any{
 		"by":    string(by),
 		"value": value,
 	}, result)
@@ -26,9 +26,9 @@ func (a *accountAPIImpl) GetAccount(by api.QueryBy, value string) (*api.Detailed
 	return result, nil
 }
 
-func (a *accountAPIImpl) GetAccountsByL1Address(l1Address string) (*api.SubAccounts, error) {
+func (a *accountAPIImpl) GetAccountsByL1Address(ctx context.Context, l1Address string) (*api.SubAccounts, error) {
 	result := &api.SubAccounts{}
-	err := a.client.getAndParseL2HTTPResponse("api/v1/accountsByL1Address", map[string]any{
+	err := a.client.getAndParseL2HTTPResponse(ctx, "api/v1/accountsByL1Address", map[string]any{
 		"l1_address": l1Address,
 	}, result)
 	if err != nil {
@@ -37,7 +37,7 @@ func (a *accountAPIImpl) GetAccountsByL1Address(l1Address string) (*api.SubAccou
 	return result, nil
 }
 
-func (a *accountAPIImpl) GetAccountMetadata(by api.QueryBy, value string, auth string) (*api.AccountMetadatas, error) {
+func (a *accountAPIImpl) GetAccountMetadata(ctx context.Context, by api.QueryBy, value string, auth string) (*api.AccountMetadatas, error) {
 	result := &api.AccountMetadatas{}
 	params := map[string]any{
 		"by":    string(by),
@@ -46,14 +46,14 @@ func (a *accountAPIImpl) GetAccountMetadata(by api.QueryBy, value string, auth s
 	if auth != "" {
 		params["auth"] = auth
 	}
-	err := a.client.getAndParseL2HTTPResponse("api/v1/accountMetadata", params, result)
+	err := a.client.getAndParseL2HTTPResponse(ctx, "api/v1/accountMetadata", params, result)
 	if err != nil {
 		return nil, err
 	}
 	return result, nil
 }
 
-func (a *accountAPIImpl) GetAccountLimits(accountIndex int64, auth string) (*api.AccountLimits, error) {
+func (a *accountAPIImpl) GetAccountLimits(ctx context.Context, accountIndex int64, auth string) (*api.AccountLimits, error) {
 	result := &api.AccountLimits{}
 	params := map[string]any{
 		"account_index": accountIndex,
@@ -61,14 +61,14 @@ func (a *accountAPIImpl) GetAccountLimits(accountIndex int64, auth string) (*api
 	if auth != "" {
 		params["auth"] = auth
 	}
-	err := a.client.getAndParseL2HTTPResponse("api/v1/accountLimits", params, result)
+	err := a.client.getAndParseL2HTTPResponse(ctx, "api/v1/accountLimits", params, result)
 	if err != nil {
 		return nil, err
 	}
 	return result, nil
 }
 
-func (a *accountAPIImpl) GetLiquidations(accountIndex int64, limit int, auth string, opts *core.LiquidationOpts) (*api.LiquidationInfos, error) {
+func (a *accountAPIImpl) GetLiquidations(ctx context.Context, accountIndex int64, limit int, auth string, opts *core.LiquidationOpts) (*api.LiquidationInfos, error) {
 	result := &api.LiquidationInfos{}
 	params := map[string]any{
 		"account_index": accountIndex,
@@ -85,14 +85,14 @@ func (a *accountAPIImpl) GetLiquidations(accountIndex int64, limit int, auth str
 			params["cursor"] = opts.Cursor
 		}
 	}
-	err := a.client.getAndParseL2HTTPResponse("api/v1/liquidations", params, result)
+	err := a.client.getAndParseL2HTTPResponse(ctx, "api/v1/liquidations", params, result)
 	if err != nil {
 		return nil, err
 	}
 	return result, nil
 }
 
-func (a *accountAPIImpl) GetPositionFunding(accountIndex int64, limit int, auth string, opts *core.PositionFundingOpts) (*api.PositionFundings, error) {
+func (a *accountAPIImpl) GetPositionFunding(ctx context.Context, accountIndex int64, limit int, auth string, opts *core.PositionFundingOpts) (*api.PositionFundings, error) {
 	result := &api.PositionFundings{}
 	params := map[string]any{
 		"account_index": accountIndex,
@@ -112,18 +112,18 @@ func (a *accountAPIImpl) GetPositionFunding(accountIndex int64, limit int, auth 
 			params["side"] = opts.Side
 		}
 	}
-	err := a.client.getAndParseL2HTTPResponse("api/v1/positionFunding", params, result)
+	err := a.client.getAndParseL2HTTPResponse(ctx, "api/v1/positionFunding", params, result)
 	if err != nil {
 		return nil, err
 	}
 	return result, nil
 }
 
-func (a *accountAPIImpl) GetPnL(accountIndex int64, resolution string, timestamps api.TimestampRange, countBack int, auth string, ignoreTransfers bool) (*api.AccountPnL, error) {
+func (a *accountAPIImpl) GetPnL(ctx context.Context, accountIndex int64, resolution string, timestamps api.TimestampRange, countBack int, auth string, ignoreTransfers bool) (*api.AccountPnL, error) {
 	result := &api.AccountPnL{}
 	params := map[string]any{
 		"by":              "index",
-		"value":           fmt.Sprintf("%d", accountIndex),
+		"value":           accountIndex,
 		"resolution":      resolution,
 		"start_timestamp": timestamps.StartTimestamp,
 		"end_timestamp":   timestamps.EndTimestamp,
@@ -135,14 +135,14 @@ func (a *accountAPIImpl) GetPnL(accountIndex int64, resolution string, timestamp
 	if ignoreTransfers {
 		params["ignore_transfers"] = true
 	}
-	err := a.client.getAndParseL2HTTPResponse("api/v1/pnl", params, result)
+	err := a.client.getAndParseL2HTTPResponse(ctx, "api/v1/pnl", params, result)
 	if err != nil {
 		return nil, err
 	}
 	return result, nil
 }
 
-func (a *accountAPIImpl) GetPublicPoolsMetadata(filter string, index int, limit int, auth string, accountIndex *int64) (*api.RespPublicPoolsMetadata, error) {
+func (a *accountAPIImpl) GetPublicPoolsMetadata(ctx context.Context, filter string, index int, limit int, auth string, accountIndex *int64) (*api.RespPublicPoolsMetadata, error) {
 	result := &api.RespPublicPoolsMetadata{}
 	params := map[string]any{
 		"filter": filter,
@@ -155,28 +155,28 @@ func (a *accountAPIImpl) GetPublicPoolsMetadata(filter string, index int, limit 
 	if accountIndex != nil {
 		params["account_index"] = *accountIndex
 	}
-	err := a.client.getAndParseL2HTTPResponse("api/v1/publicPoolsMetadata", params, result)
+	err := a.client.getAndParseL2HTTPResponse(ctx, "api/v1/publicPoolsMetadata", params, result)
 	if err != nil {
 		return nil, err
 	}
 	return result, nil
 }
 
-func (a *accountAPIImpl) ChangeAccountTier(accountIndex int64, newTier string, auth string) (*api.RespChangeAccountTier, error) {
+func (a *accountAPIImpl) ChangeAccountTier(ctx context.Context, accountIndex int64, newTier string, auth string) (*api.RespChangeAccountTier, error) {
 	result := &api.RespChangeAccountTier{}
-	body := map[string]any{
+	params := map[string]any{
 		"account_index": accountIndex,
 		"new_tier":      newTier,
 		"auth":          auth,
 	}
-	err := a.client.postAndParseL2HTTPResponse("api/v1/changeAccountTier", body, result)
+	err := a.client.postURLEncodedL2HTTPResponseWithAuth(ctx, "api/v1/changeAccountTier", params, "", result)
 	if err != nil {
 		return nil, err
 	}
 	return result, nil
 }
 
-func (a *accountAPIImpl) GetL1Metadata(l1Address string, auth string) (*api.L1Metadata, error) {
+func (a *accountAPIImpl) GetL1Metadata(ctx context.Context, l1Address string, auth string) (*api.L1Metadata, error) {
 	result := &api.L1Metadata{}
 	params := map[string]any{
 		"l1_address": l1Address,
@@ -184,14 +184,14 @@ func (a *accountAPIImpl) GetL1Metadata(l1Address string, auth string) (*api.L1Me
 	if auth != "" {
 		params["auth"] = auth
 	}
-	err := a.client.getAndParseL2HTTPResponse("api/v1/l1Metadata", params, result)
+	err := a.client.getAndParseL2HTTPResponse(ctx, "api/v1/l1Metadata", params, result)
 	if err != nil {
 		return nil, err
 	}
 	return result, nil
 }
 
-func (a *accountAPIImpl) GetApiKeys(accountIndex int64, apiKeyIndex *uint8) (*api.AccountApiKeys, error) {
+func (a *accountAPIImpl) GetApiKeys(ctx context.Context, accountIndex int64, apiKeyIndex *uint8) (*api.AccountApiKeys, error) {
 	result := &api.AccountApiKeys{}
 	params := map[string]any{
 		"account_index": accountIndex,
@@ -199,7 +199,7 @@ func (a *accountAPIImpl) GetApiKeys(accountIndex int64, apiKeyIndex *uint8) (*ap
 	if apiKeyIndex != nil {
 		params["api_key_index"] = *apiKeyIndex
 	}
-	err := a.client.getAndParseL2HTTPResponse("api/v1/apikeys", params, result)
+	err := a.client.getAndParseL2HTTPResponse(ctx, "api/v1/apikeys", params, result)
 	if err != nil {
 		return nil, err
 	}

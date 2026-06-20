@@ -1,10 +1,10 @@
 package txtypes
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
-	"github.com/bytedance/sonic"
 	gFp5 "github.com/elliottech/poseidon_crypto/field/goldilocks_quintic_extension"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
@@ -16,7 +16,10 @@ const (
 	TemplateChangePubKey = "Register Lighter Account\n\npubkey: 0x%s\nnonce: %s\naccount index: %s\napi key index: %s\nOnly sign this message for a trusted client!"
 	TemplateTransfer     = "Transfer\n\nnonce: %s\nfrom: %s (route %s)\napi key: %s\nto: %s (route %s)\nasset: %s\namount: %s\nfee: %s" +
 		"\nchainId: %s\nmemo: %s\nOnly sign this message for a trusted client!"
-	TemplateSubAccount = "Create Lighter Sub Account\n\nmaster account index: %s\nOnly sign this message for a trusted client!"
+	TemplateSubAccount          = "Create Lighter Sub Account\n\nmaster account index: %s\nOnly sign this message for a trusted client!"
+	TemplateAirdropAllocation   = "Airdrop Allocation\n\nallocations: %s\nchainId: %s\nOnly sign this message for a trusted client!"
+	TemplateL2ApproveIntegrator = "Approve Integrator\n\nnonce: %s\naccount index: %s\napi key index: %s\nintegrator account index: %s\nmax perps taker fee: %s" +
+		"\nmax perps maker fee: %s\nmax spot taker fee: %s\nmax spot maker fee: %s\napproval expiry: %s\nchainId: %s\nOnly sign this message for a trusted client!"
 )
 
 const SignatureLength = 80
@@ -37,8 +40,8 @@ func IsZeroByteSlice(bytes []byte) bool {
 	return true
 }
 
-func getTxInfo(tx interface{}) (string, error) {
-	txInfoBytes, err := sonic.Marshal(tx)
+func getTxInfo(tx any) (string, error) {
+	txInfoBytes, err := json.Marshal(tx)
 	if err != nil {
 		return "", err
 	}
@@ -67,10 +70,6 @@ func calculateL1AddressBySignature(signatureBody, l1Signature string) common.Add
 	// Decode from signature string to get the signature byte array
 	signatureContent, err := hexutil.Decode(l1Signature)
 	if err != nil {
-		return [20]byte{}
-	}
-
-	if len(signatureContent) != L1SignatureLength {
 		return [20]byte{}
 	}
 

@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -48,7 +49,7 @@ func main() {
 	}
 
 	// Transfer handles L1 signing internally - just pass the eth private key
-	resp, err := signerClient.Transfer(ethPrivateKey, req, nil)
+	resp, err := signerClient.Transfer(context.Background(), ethPrivateKey, req, nil)
 	if err != nil {
 		log.Fatalf("Failed to submit transfer: %v", err)
 	}

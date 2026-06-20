@@ -1,5 +1,7 @@
 package nonce
 
+import "context"
+
 // APIManager always queries the API for the next nonce.
 // This is slower due to network latency but always returns the correct nonce.
 //
@@ -17,8 +19,8 @@ func NewAPIManager(fetcher NonceFetcher) *APIManager {
 }
 
 // GetNonce fetches the next nonce from the API.
-func (m *APIManager) GetNonce(accountIndex int64, apiKeyIndex uint8) (int64, error) {
-	return m.fetcher.GetNextNonce(accountIndex, apiKeyIndex)
+func (m *APIManager) GetNonce(ctx context.Context, accountIndex int64, apiKeyIndex uint8) (int64, error) {
+	return m.fetcher.GetNextNonce(ctx, accountIndex, apiKeyIndex)
 }
 
 // AcknowledgeSuccess is a no-op for APIManager since it always queries the API.

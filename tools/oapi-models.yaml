@@ -1,0 +1,13 @@
+# oapi-codegen config for generating faithful Go models from the Lighter
+# OpenAPI spec. Models only; endpoint methods are hand-wired in client/http
+# so the signer-coupled SendTx path is preserved.
+#
+# Output path is relative to types/apimodels/ (the directory that
+# `go generate ./types/apimodels` runs in). Regenerate with:
+#   go generate ./types/apimodels
+package: apimodels
+output: models.gen.go
+generate:
+  models: true
+output-options:
+  skip-prune: true

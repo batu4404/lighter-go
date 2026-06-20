@@ -33,26 +33,28 @@ type DetailedAccounts struct {
 
 // AccountPosition represents a position in a market
 type AccountPosition struct {
-	MarketIndex       int16  `json:"market_index"`
-	MarketSymbol      string `json:"market_symbol,omitempty"`
-	Size              string `json:"size"`
-	Side              string `json:"side"` // "long" or "short"
-	EntryPrice        string `json:"entry_price"`
-	MarkPrice         string `json:"mark_price"`
-	LiquidationPrice  string `json:"liquidation_price,omitempty"`
-	UnrealizedPnl     string `json:"unrealized_pnl"`
-	RealizedPnl       string `json:"realized_pnl,omitempty"`
-	Leverage          string `json:"leverage"`
-	MarginMode        string `json:"margin_mode"` // "cross" or "isolated"
-	IsolatedMargin    string `json:"isolated_margin,omitempty"`
-	InitialMargin     string `json:"initial_margin"`
-	MaintenanceMargin string `json:"maintenance_margin"`
+	MarketID               int    `json:"market_id"`
+	Symbol                 string `json:"symbol"`
+	InitialMarginFraction  string `json:"initial_margin_fraction"`
+	OpenOrderCount         int    `json:"open_order_count"`
+	PendingOrderCount      int    `json:"pending_order_count"`
+	PositionTiedOrderCount int    `json:"position_tied_order_count"`
+	Sign                   int    `json:"sign"` // 1 = long, -1 = short
+	Position               string `json:"position"` // position size
+	AvgEntryPrice          string `json:"avg_entry_price"`
+	PositionValue          string `json:"position_value"`
+	UnrealizedPnl          string `json:"unrealized_pnl"`
+	RealizedPnl            string `json:"realized_pnl"`
+	LiquidationPrice       string `json:"liquidation_price"`
+	TotalFundingPaidOut    string `json:"total_funding_paid_out,omitempty"`
+	MarginMode             int    `json:"margin_mode"` // 0 = cross, 1 = isolated
+	AllocatedMargin        string `json:"allocated_margin"`
 }
 
 // AccountAsset represents an asset balance in an account
 type AccountAsset struct {
-	AssetIndex       int16  `json:"asset_index"`
-	AssetSymbol      string `json:"asset_symbol,omitempty"`
+	AssetIndex       int16  `json:"asset_id"`
+	AssetSymbol      string `json:"symbol,omitempty"`
 	Balance          string `json:"balance"`
 	AvailableBalance string `json:"available_balance"`
 	LockedBalance    string `json:"locked_balance,omitempty"`
@@ -78,12 +80,10 @@ type AccountMetadatas struct {
 // AccountLimits represents trading limits for an account
 type AccountLimits struct {
 	BaseResponse
-	AccountIndex      int64  `json:"account_index"`
-	MaxLeverage       int    `json:"max_leverage"`
-	MaxPositionValue  string `json:"max_position_value"`
-	MaxOrderValue     string `json:"max_order_value"`
-	DailyWithdrawLimit string `json:"daily_withdraw_limit"`
-	RemainingWithdraw string `json:"remaining_withdraw"`
+	MaxLLPPercentage    int    `json:"max_llp_percentage"`
+	MaxLLPAmount        string `json:"max_llp_amount"`
+	UserTier            string `json:"user_tier"`
+	CanCreatePublicPool bool   `json:"can_create_public_pool"`
 }
 
 // AccountStats represents account statistics
@@ -192,6 +192,7 @@ type TransferFeeInfo struct {
 	FeeRate          string `json:"fee_rate"`
 	MinFee           string `json:"min_fee"`
 	MaxFee           string `json:"max_fee"`
+	TransferFeeUsdc  int64  `json:"transfer_fee_usdc"` // Fee in USDC base units (6 decimals)
 }
 
 // ValidatorInfo represents validator information

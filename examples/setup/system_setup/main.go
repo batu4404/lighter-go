@@ -12,6 +12,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -58,7 +59,7 @@ func main() {
 	fmt.Printf("L1 Address: %s\n", l1Address)
 
 	// Find account by L1 address
-	accounts, err := httpClient.Account().GetAccountsByL1Address(l1Address)
+	accounts, err := httpClient.Account().GetAccountsByL1Address(context.Background(), l1Address)
 	if err != nil {
 		log.Fatalf("Failed to get accounts: %v", err)
 	}
@@ -144,7 +145,7 @@ func main() {
 			PubKey: pubKey,
 		}
 
-		resp, err := keyClient.ChangePubKey(ethPrivateKey, req, nil)
+		resp, err := keyClient.ChangePubKey(context.Background(), ethPrivateKey, req, nil)
 		if err != nil {
 			log.Fatalf("Failed to register API key %d: %v", i, err)
 		}
@@ -172,7 +173,7 @@ func main() {
 
 	// Verify the client works
 	fmt.Println("\nVerifying setup...")
-	positions, err := signerClient.GetPositions()
+	positions, err := signerClient.GetPositions(context.Background())
 	if err != nil {
 		log.Printf("Warning: Could not verify setup: %v", err)
 	} else {

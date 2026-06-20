@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"time"
@@ -56,7 +57,7 @@ func NewTxClient(apiClient MinimalHTTPClient, apiKeyPrivateKey string, accountIn
 // FullFillDefaultOps returns a usable TransactOpts object if none was provided.
 // This should not the be case for sharedlib, except for the nonce, which is optional.
 // Still, the behaviour is implemented, so it can be extended easily by extending the code GO SDK.
-func (c *TxClient) FullFillDefaultOps(ops *types.TransactOpts) (*types.TransactOpts, error) {
+func (c *TxClient) FullFillDefaultOps(ctx context.Context, ops *types.TransactOpts) (*types.TransactOpts, error) {
 	if ops == nil {
 		ops = new(types.TransactOpts)
 	}
@@ -73,7 +74,7 @@ func (c *TxClient) FullFillDefaultOps(ops *types.TransactOpts) (*types.TransactO
 		if c.apiClient == nil {
 			return nil, fmt.Errorf("nonce was not provided & HTTPClient is nil. Either provide the nonce or enable HTTPClient to get the nonce from Lighter")
 		}
-		nonce, err := c.apiClient.GetNextNonce(*ops.FromAccountIndex, *ops.ApiKeyIndex)
+		nonce, err := c.apiClient.GetNextNonce(ctx, *ops.FromAccountIndex, *ops.ApiKeyIndex)
 		if err != nil {
 			return nil, err
 		}
